@@ -509,9 +509,29 @@ async function init() {
 
   setupInstall();
 
-  // سيرفر الخدمة
+  // سيرفر الخدمة — مع تحديث تلقائي قسري
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+    navigator.serviceWorker.register('sw.js').then((reg) => {
+      // إذا كان فيه نسخة جديدة تنتظر → فعّلها فوراً
+      if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      reg.addEventListener('updatefound', () => {
+        const sw = reg.installing;
+        if (!sw) return;
+        sw.addEventListener('statechange', () => {
+          if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+            sw.postMessage({ type: 'SKIP_WAITING' });
+          }
+        });
+      });
+    }).catch(() => {});
+
+    // عند تغيّر المتحكم (نسخة جديدة فعّلت) → أعد التحميل لسحب الجديد
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (refreshing) return;
+      refreshing = true;
+      location.reload();
+    });
   }
 }
 
