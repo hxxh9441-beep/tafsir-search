@@ -136,7 +136,12 @@ const QuranSearch = {
       results.push({ ayah, score, matchedAll, matchedCount });
     }
 
-    results.sort((a, b) => b.score - a.score);
+    results.sort((a, b) => {
+      // الآيات التي تطابق كل الكلمات أولاً
+      if (a.matchedAll !== b.matchedAll) return a.matchedAll ? -1 : 1;
+      // ثم حسب ترتيب المصحف (سورة ثم آية)
+      return a.ayah.i - b.ayah.i;
+    });
     const top = results.slice(0, max);
     return top.map(r => ({ ...r.ayah, _score: r.score, _matchedAll: r.matchedAll }));
   },
