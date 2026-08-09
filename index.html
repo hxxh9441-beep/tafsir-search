@@ -114,11 +114,13 @@
     </div>
 
     <div class="tab-panel" id="panel-gharib">
-      <!-- الآية كاملة مع إبراز الكلمة المفسَّرة -->
+      <!-- الخانة الأولى: الآية كاملة — اختر أي كلمة يظهر معناها تحت -->
       <div class="gharib-ayah-box" id="gharibAyahBox" hidden></div>
-      <div class="loading-hint" id="gharibLoading" hidden>⏳ جاري تحميل غريب الكلمات...</div>
-      <div id="gharibList"></div>
+      <!-- زر عرض كل الكلمات الغريبة -->
+      <button class="gharib-full-btn" id="gharibFullBtn" hidden>📖 عرض تفسير الآية كاملة</button>
+      <!-- منطقة العرض: معنى الكلمة المحددة أو جميع الكلمات الغريبة -->
       <div class="gharib-detail" id="gharibDetail" hidden></div>
+      <div class="loading-hint" id="gharibLoading" hidden>⏳ جاري تحميل غريب الكلمات...</div>
     </div>
 
     <div class="tab-panel" id="panel-irab">
