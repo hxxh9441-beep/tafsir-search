@@ -446,18 +446,85 @@ body {
   text-align: center;
   color: var(--text-main);
   direction: rtl;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: baseline;
-  gap: 2px 8px;
-  max-height: none;
-  overflow: visible;
+  display: block;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: break-word;
   white-space: normal;
 }
-.gharib-ayah-box .gword { opacity: 0.4; transition: opacity .25s, background .25s; cursor: pointer; border-radius: 8px; padding: 2px 6px; white-space: normal; overflow-wrap: break-word; }
+.gharib-ayah-box .gword { opacity: 0.4; transition: opacity .25s, background .25s; cursor: pointer; border-radius: 8px; padding: 2px 6px; white-space: normal; overflow-wrap: break-word; word-break: break-word; display: inline; }
 .gharib-ayah-box .gword.active { opacity: 1; font-weight: 700; background: var(--chip-bg); color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
 .gharib-ayah-box .gword:hover { opacity: 0.75; }
+
+/* ===== ظƒظ„ظ…ط§طھ ط§ظ„ط¢ظٹط© ط§ظ„طھظپط§ط¹ظ„ظٹط© (طµظپط­ط© ط§ظ„ط¢ظٹط©) ===== */
+#ayahText { line-height: 2.4; overflow-wrap: break-word; word-break: break-word; }
+.ayah-word {
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 1px 3px;
+  transition: background .2s, box-shadow .2s, opacity .2s;
+  white-space: normal;
+}
+.ayah-word:hover { background: var(--chip-bg); }
+.ayah-word.hit {
+  background: var(--chip-bg);
+  color: var(--accent);
+  font-weight: 700;
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+.ayah-word.selected {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: none;
+  font-weight: 700;
+}
+
+/* ===== طµظ†ط¯ظˆظ‚ طھظپط§ط¹ظ„ ط§ظ„ظƒظ„ظ…ط§طھ ===== */
+.word-detail {
+  margin: 4px 0 14px;
+  padding: 14px;
+  background: var(--input-bg);
+  border: 1.5px solid var(--accent);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  text-align: right;
+}
+.word-detail-mean {
+  font-size: 14.5px;
+  line-height: 2;
+  color: var(--text-main);
+  margin-bottom: 10px;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+.word-detail-mean b { color: var(--accent); }
+.word-detail-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.word-action {
+  flex: 1;
+  min-width: 130px;
+  border: none;
+  border-radius: 11px;
+  padding: 10px 8px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform .15s;
+}
+.word-action:active { transform: scale(0.95); }
+#wordSearchBtn {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff;
+}
+#wordTafsirBtn {
+  background: var(--hover);
+  color: var(--text-main);
+  border: 1px solid var(--card-border);
+}
 
 /* ===== ظ…طµط¯ط± ط§ظ„ظ…ط¹ظ„ظˆظ…ط§طھ ===== */
 .ayah-source {
