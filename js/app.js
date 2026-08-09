@@ -79,7 +79,13 @@ function doSearch(query, showScreenAfter = true) {
   renderResults(results, query);
   if (showScreenAfter) {
     showScreen('results');
-    if (results.length) $('resultsMeta').textContent = `✅ ${results.length} نتيجة لـ "${query}"`;
+    const meta = $('resultsMeta');
+    meta.hidden = false;
+    if (results.length) {
+      meta.textContent = `📄 عدد النتائج: ${results.length} — لـ "${query}"`;
+    } else {
+      meta.textContent = `🔍 لا توجد نتائج لـ "${query}"`;
+    }
   }
 }
 
@@ -113,6 +119,39 @@ function escapeHtml(s) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+// ---------- نسخ للنص (مع بديل للأجهزة القديمة) ----------
+const SITE_URL = 'https://hxxh9441-beep.github.io/tafsir-search/';
+const DATA_SOURCE = 'المصدر: التفسير الميسر + غريب الكلمات + الإعراب — مركز تفسير للدراسات القرآنية (رخصة CC BY 4.0)';
+
+function showToast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.hidden = false;
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.hidden = true; }, 2200);
+}
+
+async function copyText(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+    showToast('✅ تم النسخ');
+  } catch (e) {
+    showToast('❌ تعذّر النسخ');
+  }
+}
+
 // ---------- اقتراحات ----------
 function showSuggestions(query, boxId) {
   const box = $(boxId);
@@ -133,18 +172,77 @@ function showSuggestions(query, boxId) {
 }
 
 // ---------- بطاقة الآية ----------
+let currentAyahIdx = -1;   // موقع الآية الحالية في الفهرس (للتنقل)
+
+function buildGharibAyahBox(ayah, gList) {
+  // الآية كاملة مع إبراز الكلمة المفسَّرة — كل كلمة span
+  const box = $('gharibAyahBox');
+  const words = ayah.st ? ayah.st.split(' ') : [];
+  box.innerHTML = words.map((w, i) =>
+    `<span class="gword" data-w="${i}" title="${escapeHtml(w)}">${escapeHtml(w)}</span>`
+  ).join(' ');
+  box.hidden = false;
+
+  // ربط النقر على كلمة داخل الآية → تنشيط تفسيرها
+  box.querySelectorAll('.gword').forEach(el => {
+    el.addEventListener('click', () => {
+      setActiveGharibWord(+el.dataset.w);
+    });
+  });
+
+  // إبراز أول كلمة غريبة افتراضياً
+  if (gList && gList.length) setActiveGharibWord(gList[0][0] - 1);
+}
+
+let gharibState = { words: [], list: [], s: 0, a: 0 };
+
+function setActiveGharibWord(wIdx) {
+  const box = $('gharibAyahBox');
+  box.querySelectorAll('.gword').forEach(el => el.classList.toggle('active', +el.dataset.w === wIdx));
+
+  // تفعيل العنصر المقابل في القائمة + تمرير إليه
+  const items = document.querySelectorAll('#gharibList .gharib-item');
+  items.forEach((it, i) => {
+    const active = it.dataset.w == wIdx;
+    it.classList.toggle('active', active);
+    if (active) it.scrollIntoView({ block: 'nearest' });
+  });
+
+  // إظهار تفسير الكلمة النشطة في أسفل القائمة
+  const g = gharibState.list.find(x => x[0] - 1 === wIdx);
+  if (g) {
+    const detail = $('gharibDetail');
+    const idx = g[1].indexOf(':');
+    detail.innerHTML = idx > -1
+      ? `<b>${escapeHtml(g[1].slice(0, idx).trim())}</b> — ${escapeHtml(g[1].slice(idx + 1).trim())}`
+      : escapeHtml(g[1]);
+    detail.hidden = false;
+  } else {
+    $('gharibDetail').hidden = true;
+  }
+}
+
 async function openAyah(s, a) {
   showScreen('ayah');
-  const ayah = QuranSearch.index.find(x => x.s === s && x.a === a);
-  if (!ayah) return;
+  const idx = QuranSearch.index.findIndex(x => x.s === s && x.a === a);
+  if (idx === -1) return;
+  currentAyahIdx = idx;
+  const ayah = QuranSearch.index[idx];
 
   $('ayahTitle').textContent = `${QuranSearch.surahName(s)} — الآية ${a}`;
-  $('ayahText').textContent = ayah.t;
-  $('ayahRef').textContent = `سورة ${QuranSearch.surahName(s)} — الآية ${a}`;
+  $('ayahText').textContent = `{ ${ayah.t} }`;
+  $('ayahRef').textContent = `سورة ${QuranSearch.surahName(s)} — الآية ${a} (${idx + 1} / ${QuranSearch.index.length})`;
+  $('ayahSource').textContent = `${DATA_SOURCE} • ${SITE_URL}`;
+
+  // تفعيل/تعطيل أزرار التنقل
+  $('prevAyahBtn').disabled = (idx === 0);
+  $('nextAyahBtn').disabled = (idx === QuranSearch.index.length - 1);
 
   // تصفير المحتوى
   $('tafsirText').textContent = '';
   $('gharibList').innerHTML = '';
+  $('gharibAyahBox').hidden = true;
+  $('gharibDetail').hidden = true;
   $('irabText').textContent = '';
   $('tafsirLoading').hidden = false;
   $('gharibLoading').hidden = false;
@@ -164,11 +262,43 @@ async function openAyah(s, a) {
     $('gharibLoading').hidden = true;
     const g = gharibMap.get(s + ':' + a);
     if (g && g.length) {
-      $('gharibList').innerHTML = g.map(([wn, m]) => `
-        <div class="gharib-item">
-          <span class="gharib-word">${escapeHtml(m.split(' ')[0])}</span>
-          <span class="gharib-mean">${escapeHtml(m)}</span>
-        </div>`).join('');
+      gharibState = { list: g, s, a };
+      // القائمة: كلمة + معنى + زر نسخ (تُبنى أولاً لأنها تحتوي تفاصيل الكلمة)
+      $('gharibList').innerHTML = g.map(([wn, m]) => {
+        const idx2 = m.indexOf(':');
+        const word = idx2 > -1 ? m.slice(0, idx2).trim() : m;
+        const mean = idx2 > -1 ? m.slice(idx2 + 1).trim() : '';
+        return `
+          <div class="gharib-item" data-w="${wn - 1}">
+            <span class="gharib-word">${escapeHtml(word)}</span>
+            <span class="gharib-mean">${escapeHtml(mean)}</span>
+            <button class="gharib-copy" title="نسخ الكلمة مع المعنى والمصدر" data-word="${escapeHtml(word)}" data-mean="${escapeHtml(mean)}">📋</button>
+          </div>`;
+      }).join('');
+
+      // بوكس الآية بالكلمات (يُبرز أول كلمة غريبة)
+      buildGharibAyahBox(ayah, g);
+
+      // النقر على عنصر غريب → إبراز الكلمة في الآية
+      document.querySelectorAll('#gharibList .gharib-item').forEach((it) => {
+        it.addEventListener('click', (e) => {
+          if (e.target.closest('.gharib-copy')) return;
+          setActiveGharibWord(+it.dataset.w);
+        });
+      });
+
+      // زر نسخ الكلمة
+      document.querySelectorAll('#gharibList .gharib-copy').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const txt =
+            `{ ${ayah.t} }\n` +
+            `الكلمة: ${btn.dataset.word}\n` +
+            `المعنى: ${btn.dataset.mean}\n` +
+            `سورة ${QuranSearch.surahName(s)} — الآية ${a}\n\n` +
+            DATA_SOURCE + '\n' + SITE_URL;
+          copyText(txt);
+        });
+      });
     }
   } catch (e) { $('gharibLoading').hidden = true; }
 
@@ -179,6 +309,32 @@ async function openAyah(s, a) {
     if (i) $('irabText').textContent = i;
   } catch (e) {}
 }
+
+// التنقل: الآية السابقة / التالية
+function goAyah(offset) {
+  const idx = currentAyahIdx + offset;
+  if (idx < 0 || idx >= QuranSearch.index.length) return;
+  const next = QuranSearch.index[idx];
+  openAyah(next.s, next.a);
+}
+
+// نسخ الآية كاملة (نص + تفسير + مصدر + رابط)
+async function copyAyah() {
+  const idx = currentAyahIdx;
+  if (idx === -1) return;
+  const ayah = QuranSearch.index[idx];
+  const t = (tafsirMap && tafsirMap.get(ayah.s + ':' + ayah.a)) || '';
+  const txt =
+    `{ ${ayah.t} }\n` +
+    `سورة ${QuranSearch.surahName(ayah.s)} — الآية ${ayah.a}\n\n` +
+    (t ? `التفسير الميسر:\n${t}\n\n` : '') +
+    DATA_SOURCE + '\n' + SITE_URL;
+  copyText(txt);
+}
+
+$('prevAyahBtn').addEventListener('click', () => goAyah(-1));
+$('nextAyahBtn').addEventListener('click', () => goAyah(1));
+$('copyAyahBtn').addEventListener('click', copyAyah);
 
 // تبديل التبويبات
 function switchTab(name) {
