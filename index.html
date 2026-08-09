@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>الباحث القرآني | Tafsir Search</title>
+<meta name="description" content="محرك بحث قرآني سريع — آية، تفسير، إعراب، وغريب الكلمات في بطاقة واحدة">
+<meta name="theme-color" content="#0B1220" id="metaTheme">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="الباحث القرآني">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<!-- شاشة التحميل -->
+<div class="loading-screen" id="loadingScreen">
+  <div class="loading-content">
+    <div class="loading-logo">📖</div>
+    <h2>جاري تحميل القرآن...</h2>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <p class="loading-text" id="loadingText">تحميل فهرس البحث...</p>
+  </div>
+</div>
+
+<!-- شاشة البداية -->
+<div class="app" id="homeScreen">
+  <div class="home-inner">
+    <div class="logo-wrap">
+      <div class="logo">📖</div>
+    </div>
+    <h1 class="home-title">الباحث <span>القرآني</span></h1>
+    <p class="home-sub">اكتب كلمة أو آية — يحضر لك المعنى كاملاً</p>
+
+    <div class="search-box" id="searchBoxHome">
+      <input type="text" id="searchInput" placeholder="ابحث في القرآن الكريم..." autocomplete="off" autocapitalize="off" spellcheck="false">
+      <button class="search-clear" id="clearBtn" hidden>✕</button>
+      <button class="search-icon-btn" id="searchBtn" aria-label="بحث">🔍</button>
+    </div>
+
+    <!-- اقتراحات سريعة -->
+    <div class="chips" id="chips">
+      <button class="chip" data-q="الرحمن">الرحمن</button>
+      <button class="chip" data-q="الصبر">الصبر</button>
+      <button class="chip" data-q="التقوى">التقوى</button>
+      <button class="chip" data-q="الزكاة">الزكاة</button>
+      <button class="chip" data-q="الجنة">الجنة</button>
+      <button class="chip" data-q="آية الكرسي">آية الكرسي</button>
+    </div>
+
+    <div class="suggest" id="suggestBox" hidden></div>
+  </div>
+</div>
+
+<!-- شاشة النتائج -->
+<div class="app results-screen" id="resultsScreen" hidden>
+  <header class="results-header">
+    <button class="back-btn" id="backBtn" aria-label="رجوع">→</button>
+    <div class="search-box small" id="searchBoxResults">
+      <input type="text" id="searchInput2" placeholder="ابحث في القرآن الكريم..." autocomplete="off" autocapitalize="off" spellcheck="false">
+      <button class="search-clear" id="clearBtn2" hidden>✕</button>
+      <button class="search-icon-btn" id="searchBtn2" aria-label="بحث">🔍</button>
+    </div>
+    <button class="theme-btn" id="themeBtn">🌙</button>
+  </header>
+
+  <div class="suggest" id="suggestBox2" hidden></div>
+
+  <div class="results-meta" id="resultsMeta" hidden></div>
+  <div class="results" id="resultsList"></div>
+</div>
+
+<!-- بطاقة الآية التفصيلية -->
+<div class="app ayah-screen" id="ayahScreen" hidden>
+  <header class="results-header">
+    <button class="back-btn" id="backBtn2" aria-label="رجوع">→</button>
+    <div class="ayah-title" id="ayahTitle"></div>
+    <button class="theme-btn" id="themeBtn2">🌙</button>
+  </header>
+
+  <div class="ayah-card">
+    <div class="ayah-text" id="ayahText"></div>
+    <div class="ayah-ref" id="ayahRef"></div>
+
+    <!-- تبويبات: تفسير / غريب / إعراب -->
+    <div class="tabs" id="ayahTabs">
+      <button class="tab-btn active" data-tab="tafsir">📚 التفسير الميسر</button>
+      <button class="tab-btn" data-tab="gharib">🌍 غريب الكلمات</button>
+      <button class="tab-btn" data-tab="irab">🔤 الإعراب</button>
+    </div>
+
+    <div class="tab-panel active" id="panel-tafsir">
+      <div class="loading-hint" id="tafsirLoading" hidden>⏳ جاري تحميل التفسير...</div>
+      <p class="section-text" id="tafsirText"></p>
+    </div>
+
+    <div class="tab-panel" id="panel-gharib">
+      <div class="loading-hint" id="gharibLoading" hidden>⏳ جاري تحميل غريب الكلمات...</div>
+      <div id="gharibList"></div>
+    </div>
+
+    <div class="tab-panel" id="panel-irab">
+      <div class="loading-hint" id="irabLoading" hidden>⏳ جاري تحميل الإعراب...</div>
+      <p class="section-text irab" id="irabText"></p>
+    </div>
+  </div>
+</div>
+
+<div class="install-banner" id="installBanner" hidden>
+  <span id="installMsg">📲 ثبّت الباحث القرآني — يعمل بدون إنترنت</span>
+  <button id="installBtn">تثبيت</button>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="js/search-engine.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
