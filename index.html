@@ -84,6 +84,14 @@
 
   <div class="ayah-card">
     <div class="ayah-text" id="ayahText"></div>
+    <!-- صندوق تفاعل الكلمات: يظهر عند الضغط على أي كلمة -->
+    <div class="word-detail" id="wordDetail" hidden>
+      <div class="word-detail-mean" id="wordDetailMean"></div>
+      <div class="word-detail-actions">
+        <button class="word-action" id="wordSearchBtn">🔍 بحث عن الكلمة</button>
+        <button class="word-action" id="wordTafsirBtn">📖 عرض تفسير الآية كاملة</button>
+      </div>
+    </div>
     <div class="ayah-ref" id="ayahRef"></div>
 
     <!-- أزرار: نسخ + تنقل بين الآيات -->
@@ -96,7 +104,7 @@
     <!-- تبويبات: تفسير / غريب / إعراب -->
     <div class="tabs" id="ayahTabs">
       <button class="tab-btn active" data-tab="tafsir">📚 التفسير الميسر</button>
-      <button class="tab-btn" data-tab="gharib">🌍 غريب الكلمات</button>
+      <button class="tab-btn" data-tab="gharib">📜 غريب الكلمات</button>
       <button class="tab-btn" data-tab="irab">🔤 الإعراب</button>
     </div>
 
