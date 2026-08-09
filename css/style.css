@@ -1,4 +1,4 @@
-/* ===== المتغيرات ===== */
+/* ===== ط§ظ„ظ…طھط؛ظٹط±ط§طھ ===== */
 :root {
   --bg1: #F4F6FA;
   --bg2: #E8EDF5;
@@ -35,11 +35,17 @@
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html, body { height:100%; }
 
-/* ===== الخطوط المضمّنة (محلية 100%) ===== */
+/* ===== ط§ظ„ط®ط·ظˆط· ط§ظ„ظ…ط¶ظ…ظ‘ظ†ط© (ظ…ط­ظ„ظٹط© 100%) ===== */
 @font-face {
   font-family: 'Thmanyah';
-  src: url('../fonts/ThmanyahSans-Regular.ttf') format('truetype');
+  src: url('../fonts/thmanyah-serif-regular.woff2') format('woff2');
   font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Thmanyah';
+  src: url('../fonts/thmanyah-serif-bold.woff2') format('woff2');
+  font-weight: 700;
   font-display: swap;
 }
 @font-face {
@@ -64,7 +70,7 @@ body {
   padding: max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
 }
 
-/* ===== شاشة التحميل ===== */
+/* ===== ط´ط§ط´ط© ط§ظ„طھط­ظ…ظٹظ„ ===== */
 .loading-screen {
   position: fixed;
   inset: 0;
@@ -100,7 +106,7 @@ body {
 }
 .loading-text { font-size: 12.5px; color: var(--text-dim); font-weight: 600; }
 
-/* ===== شاشة البداية ===== */
+/* ===== ط´ط§ط´ط© ط§ظ„ط¨ط¯ط§ظٹط© ===== */
 .home-inner {
   min-height: calc(100dvh - 80px);
   display: flex;
@@ -125,7 +131,7 @@ body {
 .home-title span { color: var(--accent); }
 .home-sub { font-size: 14px; color: var(--text-dim); font-weight: 500; margin-bottom: 8px; }
 
-/* ===== صندوق البحث ===== */
+/* ===== طµظ†ط¯ظˆظ‚ ط§ظ„ط¨ط­ط« ===== */
 .search-box {
   width: min(100%, 560px);
   display: flex;
@@ -180,7 +186,7 @@ body {
   display: grid; place-items: center;
 }
 
-/* ===== الاقتراحات السريعة ===== */
+/* ===== ط§ظ„ط§ظ‚طھط±ط§ط­ط§طھ ط§ظ„ط³ط±ظٹط¹ط© ===== */
 .chips {
   display: flex;
   flex-wrap: wrap;
@@ -203,7 +209,7 @@ body {
 .chip:active { transform: scale(0.93); }
 .chip:hover { background: var(--hover); }
 
-/* ===== الاقتراحات أثناء الكتابة ===== */
+/* ===== ط§ظ„ط§ظ‚طھط±ط§ط­ط§طھ ط£ط«ظ†ط§ط، ط§ظ„ظƒطھط§ط¨ط© ===== */
 .suggest {
   width: min(100%, 560px);
   background: var(--card);
@@ -231,7 +237,7 @@ body {
 .suggest-item .s-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .suggest-item .s-ref { font-size: 11px; color: var(--text-dim); flex-shrink: 0; }
 
-/* ===== شاشة النتائج ===== */
+/* ===== ط´ط§ط´ط© ط§ظ„ظ†طھط§ط¦ط¬ ===== */
 .results-header {
   display: flex;
   align-items: center;
@@ -271,7 +277,7 @@ body {
 }
 .results { display: flex; flex-direction: column; gap: 10px; }
 
-/* ===== بطاقة نتيجة ===== */
+/* ===== ط¨ط·ط§ظ‚ط© ظ†طھظٹط¬ط© ===== */
 .result-card {
   background: var(--card);
   border: 1px solid var(--card-border);
@@ -321,7 +327,7 @@ body {
   overflow: hidden;
 }
 
-/* ===== بطاقة الآية ===== */
+/* ===== ط¨ط·ط§ظ‚ط© ط§ظ„ط¢ظٹط© ===== */
 .ayah-title { flex: 1; font-size: 15px; font-weight: 800; color: var(--text-dim); }
 .ayah-card {
   background: var(--card);
@@ -350,6 +356,107 @@ body {
   border-bottom: 1px dashed var(--card-border);
   margin-bottom: 14px;
 }
+
+/* ===== ط£ط²ط±ط§ط± ط§ظ„ط¢ظٹط© (ظ†ط³ط® + طھظ†ظ‚ظ„) ===== */
+.ayah-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.nav-btn {
+  width: 46px; height: 42px;
+  border: 1px solid var(--card-border);
+  border-radius: 13px;
+  background: var(--input-bg);
+  color: var(--text-main);
+  font-size: 17px;
+  cursor: pointer;
+  display: grid; place-items: center;
+  transition: transform .15s, opacity .2s;
+}
+.nav-btn:active { transform: scale(0.9); }
+.nav-btn[disabled] { opacity: 0.35; pointer-events: none; }
+.copy-btn {
+  flex: 1;
+  max-width: 180px;
+  height: 42px;
+  border: none;
+  border-radius: 13px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform .15s;
+  box-shadow: 0 6px 18px rgba(14,124,240,0.3);
+}
+.copy-btn:active { transform: scale(0.95); }
+
+/* ===== ط§ظ„ط¢ظٹط© ط§ظ„ظƒط§ظ…ظ„ط© ظ…ط¹ ط§ظ„ظƒظ„ظ…ط© ط§ظ„ط¨ط§ط±ط²ط© (ط؛ط±ظٹط¨) ===== */
+.gharib-ayah-box {
+  background: var(--hover);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  font-family: 'AmiriQuran', 'Thmanyah', serif;
+  font-size: 19px;
+  line-height: 2.1;
+  text-align: center;
+  color: var(--text-main);
+  direction: rtl;
+}
+.gharib-ayah-box .gword { opacity: 0.35; transition: opacity .25s; cursor: pointer; border-radius: 6px; padding: 0 1px; }
+.gharib-ayah-box .gword.active { opacity: 1; font-weight: 700; background: rgba(255,213,74,0.4); color: var(--text-main); }
+.gharib-ayah-box .gword:hover { opacity: 0.75; }
+
+/* ===== ظ…طµط¯ط± ط§ظ„ظ…ط¹ظ„ظˆظ…ط§طھ ===== */
+.ayah-source {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--card-border);
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+  line-height: 1.8;
+}
+.home-footer {
+  text-align: center;
+  font-size: 10.5px;
+  color: var(--text-dim);
+  opacity: .8;
+  padding: 10px 16px 4px;
+  line-height: 1.8;
+}
+
+/* ط²ط± ظ†ط³ط® ظ„ظƒظ„ ظƒظ„ظ…ط© ط؛ط±ظٹط¨ */
+.gharib-copy {
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  transition: background .2s;
+}
+.gharib-copy:hover { background: var(--hover); }
+.gharib-item { align-items: flex-start; }
+.gharib-item.active { background: var(--hover); border-radius: 10px; padding-left: 8px; padding-right: 8px; }
+.gharib-detail {
+  margin-top: 10px;
+  padding: 12px 14px;
+  background: rgba(255,213,74,0.12);
+  border: 1px solid rgba(255,213,74,0.3);
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 2;
+  color: var(--text-main);
+}
+.gharib-detail b { color: var(--gold); }
 .section { margin-top: 14px; }
 .section-title {
   font-size: 13.5px;
@@ -368,7 +475,7 @@ body {
 }
 .section-text.irab { font-size: 13.5px; color: var(--text-dim); }
 
-/* ===== التبويبات ===== */
+/* ===== ط§ظ„طھط¨ظˆظٹط¨ط§طھ ===== */
 .tabs {
   display: flex;
   gap: 6px;
@@ -416,7 +523,7 @@ body {
 .gharib-mean { font-size: 13.5px; line-height: 1.9; color: var(--text-main); }
 .loading-hint { font-size: 12px; color: var(--text-dim); margin-top: 8px; }
 
-/* ===== شريط التثبيت ===== */
+/* ===== ط´ط±ظٹط· ط§ظ„طھط«ط¨ظٹطھ ===== */
 .install-banner {
   position: fixed;
   bottom: 0; left: 0; right: 0;
