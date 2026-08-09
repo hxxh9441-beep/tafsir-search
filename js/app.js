@@ -89,6 +89,19 @@ function doSearch(query, showScreenAfter = true) {
   }
 }
 
+// ---------- إبراز كلمات البحث داخل الآية ----------
+// يعرض الآية كاملة، كلمات البحث بارزة، وكل كلمة قابلة للضغط (بحث عنها)
+function highlightAyahWords(text, query) {
+  const nq = normalizeArabic(query);
+  const terms = nq.split(/\s+/).filter(t => t.length > 1);
+  const words = text.split(' ');
+  return words.map(w => {
+    const nw = normalizeArabic(w);
+    const isHit = terms.some(t => nw === t || nw.includes(t) || t.includes(nw));
+    return `<span class="res-word${isHit ? ' hit' : ''}" data-q="${escapeHtml(nw)}">${escapeHtml(w)}</span>`;
+  }).join(' ');
+}
+
 function renderResults(results, query) {
   const list = $('resultsList');
   if (!results.length) {
@@ -105,14 +118,35 @@ function renderResults(results, query) {
     const preview = r._note ? r._note : (r.st ? r.st.slice(0, 80) + '…' : '');
     return `
       <div class="result-card" data-s="${r.s}" data-a="${r.a}">
-        <div class="result-text">${escapeHtml(r.t)}</div>
+        <div class="result-text">${highlightAyahWords(r.t, query)}</div>
         <div class="result-ref">
           <span class="snum">${r.s}</span>
           <span>${name} — الآية ${r.a}</span>
         </div>
         <div class="result-preview">${escapeHtml(preview)}</div>
+        <button class="result-tafsir-btn">📖 عرض تفسير الآية كاملة</button>
       </div>`;
   }).join('');
+
+  // ضغط على كلمة داخل الآية → بحث عنها مباشرة
+  list.querySelectorAll('.res-word').forEach(w => {
+    w.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const q = w.dataset.q;
+      $('searchInput').value = q;
+      $('searchInput2').value = q;
+      doSearch(q);
+    });
+  });
+
+  // زر تفسير الآية كاملة
+  list.querySelectorAll('.result-tafsir-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const card = btn.closest('.result-card');
+      openAyah(+card.dataset.s, +card.dataset.a);
+    });
+  });
 }
 
 function escapeHtml(s) {
