@@ -434,28 +434,6 @@ body {
 }
 .copy-btn:active { transform: scale(0.95); }
 
-/* ===== ط§ظ„ط¢ظٹط© ط§ظ„ظƒط§ظ…ظ„ط© ظ…ط¹ ط§ظ„ظƒظ„ظ…ط© ط§ظ„ط¨ط§ط±ط²ط© (ط؛ط±ظٹط¨) ===== */
-.gharib-ayah-box {
-  background: var(--hover);
-  border-radius: 14px;
-  padding: 14px 14px;
-  margin-bottom: 12px;
-  font-family: 'AmiriQuran', 'Thmanyah', serif;
-  font-size: 19px;
-  line-height: 2.2;
-  text-align: center;
-  color: var(--text-main);
-  direction: rtl;
-  display: block;
-  max-width: 100%;
-  overflow-wrap: break-word;
-  word-break: break-word;
-  white-space: normal;
-}
-.gharib-ayah-box .gword { opacity: 0.4; transition: opacity .25s, background .25s; cursor: pointer; border-radius: 8px; padding: 2px 6px; white-space: normal; overflow-wrap: break-word; word-break: break-word; display: inline; }
-.gharib-ayah-box .gword.active { opacity: 1; font-weight: 700; background: var(--chip-bg); color: var(--accent); box-shadow: inset 0 -2px 0 var(--accent); }
-.gharib-ayah-box .gword:hover { opacity: 0.75; }
-
 /* ===== ظƒظ„ظ…ط§طھ ط§ظ„ط¢ظٹط© ط§ظ„طھظپط§ط¹ظ„ظٹط© (طµظپط­ط© ط§ظ„ط¢ظٹط©) ===== */
 #ayahText { line-height: 2.4; overflow-wrap: break-word; word-break: break-word; }
 .ayah-word {
@@ -513,18 +491,50 @@ body {
   font-size: 12.5px;
   font-weight: 800;
   cursor: pointer;
-  transition: transform .15s;
+  transition: transform .15s, opacity .2s;
 }
 .word-action:active { transform: scale(0.95); }
-#wordSearchBtn {
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  color: #fff;
+
+/* ===== ط´ط±ظٹط· "ط¹ط±ط¶ طھظپط³ظٹط± ط§ظ„ط¢ظٹط© ظƒط§ظ…ظ„ط©" â€” ط¯ط§ط¦ظ… ط§ظ„ط¸ظ‡ظˆط± ظپظٹ طھط¨ظˆظٹط¨ ط§ظ„طھظپط³ظٹط± ===== */
+.word-bar {
+  margin: 0 0 12px;
+  text-align: center;
 }
 #wordTafsirBtn {
-  background: var(--hover);
-  color: var(--text-main);
-  border: 1px solid var(--card-border);
+  width: 100%;
+  background: transparent;
+  color: var(--accent);
+  border: 1.5px solid var(--accent);
+  font-weight: 800;
+  padding: 11px 8px;
+  font-size: 13px;
 }
+#wordTafsirBtn:disabled {
+  opacity: 0.45;
+  background: var(--hover);
+  color: var(--text-dim);
+  border-color: var(--card-border);
+  cursor: default;
+}
+
+/* ط±ط§ط¨ط· طµط؛ظٹط± ظ„ظ„ط¨ط­ط« ط¹ظ† ط§ظ„ظƒظ„ظ…ط© (ظ„ظٹط³ ط®ظٹط§ط±ط§ظ‹ ظƒط¨ظٹط±ط§ظ‹) */
+.word-search-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 10px;
+  transition: background .2s, transform .15s;
+}
+.word-search-link:hover { background: var(--chip-bg); }
+.word-search-link:active { transform: scale(0.97); }
 
 /* ===== ظ…طµط¯ط± ط§ظ„ظ…ط¹ظ„ظˆظ…ط§طھ ===== */
 .ayah-source {
@@ -575,24 +585,7 @@ body {
 }
 .gharib-detail b { color: var(--accent); }
 
-/* ط²ط± ط¹ط±ط¶ ظƒظ„ ط§ظ„ظƒظ„ظ…ط§طھ ط§ظ„ط؛ط±ظٹط¨ط© */
-.gharib-full-btn {
-  display: block;
-  width: 100%;
-  margin-bottom: 12px;
-  border: 1px solid var(--card-border);
-  border-radius: 12px;
-  background: var(--input-bg);
-  color: var(--text-main);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  padding: 10px;
-  cursor: pointer;
-  transition: border-color .2s, background .2s;
-}
-.gharib-full-btn:hover { border-color: var(--accent); background: var(--chip-bg); }
-.gharib-full-btn:active { transform: scale(0.98); }
+/* ط¹ظ†طµط± ظ‚ط§ط¦ظ…ط© ظƒظ„ظ…ط© ط؛ط±ظٹط¨ط© */
 .gharib-full-item {
   display: flex;
   gap: 10px;
