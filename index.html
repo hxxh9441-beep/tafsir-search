@@ -84,14 +84,17 @@
 
   <div class="ayah-card">
     <div class="ayah-text" id="ayahText"></div>
-    <!-- صندوق تفاعل الكلمات: يظهر عند الضغط على أي كلمة -->
+
+    <!-- منطقة التحكم: دائمة الظهور تحت الآية — اختيار الكلمات + عرض التفسير الكامل -->
+    <div class="word-bar">
+      <button class="word-action word-bar-btn" id="wordTafsirBtn" disabled>📖 عرض تفسير الآية كاملة</button>
+    </div>
+    <!-- صندوق الكلمة المختارة: يظهر عند الضغط على أي كلمة -->
     <div class="word-detail" id="wordDetail" hidden>
       <div class="word-detail-mean" id="wordDetailMean"></div>
-      <div class="word-detail-actions">
-        <button class="word-action" id="wordSearchBtn">🔍 بحث عن الكلمة</button>
-        <button class="word-action" id="wordTafsirBtn">📖 عرض تفسير الآية كاملة</button>
-      </div>
+      <button class="word-search-link" id="wordSearchBtn">🔍 بحث عن هذه الكلمة في القرآن</button>
     </div>
+
     <div class="ayah-ref" id="ayahRef"></div>
 
     <!-- أزرار: نسخ + تنقل بين الآيات -->
@@ -114,13 +117,9 @@
     </div>
 
     <div class="tab-panel" id="panel-gharib">
-      <!-- الخانة الأولى: الآية كاملة — اختر أي كلمة يظهر معناها تحت -->
-      <div class="gharib-ayah-box" id="gharibAyahBox" hidden></div>
-      <!-- زر عرض كل الكلمات الغريبة -->
-      <button class="gharib-full-btn" id="gharibFullBtn" hidden>📖 عرض تفسير الآية كاملة</button>
-      <!-- منطقة العرض: معنى الكلمة المحددة أو جميع الكلمات الغريبة -->
-      <div class="gharib-detail" id="gharibDetail" hidden></div>
+      <!-- قائمة الكلمات الغريبة بمعانيها — بدون الآية كاملة وبدون زر عرض الكل -->
       <div class="loading-hint" id="gharibLoading" hidden>⏳ جاري تحميل غريب الكلمات...</div>
+      <div class="gharib-detail" id="gharibDetail" hidden></div>
     </div>
 
     <div class="tab-panel" id="panel-irab">
