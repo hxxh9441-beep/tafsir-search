@@ -20,7 +20,7 @@
 <div class="loading-screen" id="loadingScreen">
   <div class="loading-content">
     <div class="loading-logo">📖</div>
-    <h2>جاري تحميل القرآن...</h2>
+    <h2>جاري التحميل...</h2>
     <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
     <p class="loading-text" id="loadingText">تحميل فهرس البحث...</p>
   </div>
@@ -53,6 +53,7 @@
 
     <div class="suggest" id="suggestBox" hidden></div>
   </div>
+  <div class="home-footer">📚 المصدر: التفسير الميسر + غريب الكلمات + الإعراب — مركز تفسير للدراسات القرآنية (رخصة CC BY 4.0)</div>
 </div>
 
 <!-- شاشة النتائج -->
@@ -85,6 +86,13 @@
     <div class="ayah-text" id="ayahText"></div>
     <div class="ayah-ref" id="ayahRef"></div>
 
+    <!-- أزرار: نسخ + تنقل بين الآيات -->
+    <div class="ayah-actions">
+      <button class="nav-btn" id="prevAyahBtn" title="الآية السابقة">→</button>
+      <button class="copy-btn" id="copyAyahBtn">📋 نسخ</button>
+      <button class="nav-btn" id="nextAyahBtn" title="الآية التالية">←</button>
+    </div>
+
     <!-- تبويبات: تفسير / غريب / إعراب -->
     <div class="tabs" id="ayahTabs">
       <button class="tab-btn active" data-tab="tafsir">📚 التفسير الميسر</button>
@@ -98,14 +106,20 @@
     </div>
 
     <div class="tab-panel" id="panel-gharib">
+      <!-- الآية كاملة مع إبراز الكلمة المفسَّرة -->
+      <div class="gharib-ayah-box" id="gharibAyahBox" hidden></div>
       <div class="loading-hint" id="gharibLoading" hidden>⏳ جاري تحميل غريب الكلمات...</div>
       <div id="gharibList"></div>
+      <div class="gharib-detail" id="gharibDetail" hidden></div>
     </div>
 
     <div class="tab-panel" id="panel-irab">
       <div class="loading-hint" id="irabLoading" hidden>⏳ جاري تحميل الإعراب...</div>
       <p class="section-text irab" id="irabText"></p>
     </div>
+
+    <!-- مصدر المعلومات -->
+    <div class="ayah-source" id="ayahSource"></div>
   </div>
 </div>
 
