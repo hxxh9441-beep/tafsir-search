@@ -209,6 +209,18 @@ function renderAyahInteractive(ayah, query) {
   });
 }
 
+// البحث عن كلمة في قائمة الغريب حسب موضعها في الآية (الأدق — مثل تبويب الغريب)
+function findGharibByIndex(wIdx) {
+  if (!gharibState || !gharibState.list.length) return null;
+  const g = gharibState.list.find(x => x[0] - 1 === wIdx);
+  if (!g) return null;
+  const idx2 = g[1].indexOf(':');
+  return {
+    word: idx2 > -1 ? g[1].slice(0, idx2).trim() : '',
+    mean: idx2 > -1 ? g[1].slice(idx2 + 1).trim() : g[1]
+  };
+}
+
 // البحث عن كلمة في قائمة الغريب (تطبيع كامل)
 function findGharibWord(word) {
   const nw = normalizeArabic(word);
@@ -233,67 +245,42 @@ function selectWord(el) {
   el.classList.add('selected');
   currentWord = el.dataset.q;
 
-  // عرض تفسير الكلمة فوراً (من الغريب)
-  const g = findGharibWord(currentWord);
+  // موضع الكلمة في الآية → البحث بالموقع أولاً (الأدق)، ثم بالاسم
+  const wIdx = Array.prototype.indexOf.call(el.parentNode.children, el);
+  const g = findGharibByIndex(wIdx) || findGharibWord(currentWord);
+
   const meanEl = $('wordDetailMean');
   if (g) {
-    meanEl.innerHTML = `<b>${escapeHtml(g.word)}</b> — ${escapeHtml(g.mean)}`;
+    meanEl.innerHTML = g.word
+      ? `<b>${escapeHtml(g.word)}</b> — ${escapeHtml(g.mean)}`
+      : `<b>${escapeHtml(el.textContent)}</b> — ${escapeHtml(g.mean)}`;
   } else {
-    meanEl.textContent = `"${el.textContent}" — مو من الكلمات الغريبة، اضغط "بحث عن الكلمة" لاستعراض آياتها`;
+    meanEl.innerHTML = `«${escapeHtml(el.textContent)}» مو من الكلمات الغريبة في هذي الآية — يمديك تبحث عنها في القرآن كامل.`;
   }
+
+  // صندوق الكلمة يظهر تحت الآية مباشرة + الزر مفعّل (نعرض تفسير كلمة الحين)
   $('wordDetail').hidden = false;
-  // الزر مفعل — لأننا الحين نعرض تفسير كلمة (مو الآية كاملة)
   $('wordTafsirBtn').disabled = false;
   $('wordDetail').scrollIntoView({ block: 'nearest' });
 }
 
 // ---------- تبويب الغريب ----------
-function buildGharibAyahBox(ayah, gList) {
-  // الآية كاملة — اختر أي كلمة يظهر معناها تحت
-  const box = $('gharibAyahBox');
-  const words = ayah.st ? ayah.st.split(' ') : [];
-  box.innerHTML = words.map((w, i) =>
-    `<span class="gword" data-w="${i}" title="${escapeHtml(w)}">${escapeHtml(w)}</span>`
-  ).join(' ');
-  box.hidden = false;
-
-  // النقر على كلمة → معناها تحت مباشرة
-  box.querySelectorAll('.gword').forEach(el => {
-    el.addEventListener('click', () => {
-      setActiveGharibWord(+el.dataset.w);
-    });
-  });
-
-  // إبراز أول كلمة غريبة افتراضياً
-  if (gList && gList.length) setActiveGharibWord(gList[0][0] - 1);
-}
-
-// اختيار كلمة من بوكس الآية → عرض معناها في gharibDetail
-function setActiveGharibWord(wIdx) {
-  const box = $('gharibAyahBox');
-  box.querySelectorAll('.gword').forEach(el => el.classList.toggle('active', +el.dataset.w === wIdx));
-
+// عرض كل الكلمات الغريبة في الآية (قائمة مباشرة — بدون الآية كاملة وبدون أزرار إضافية)
+function renderGharibList() {
   const detail = $('gharibDetail');
-  const g = gharibState.list.find(x => x[0] - 1 === wIdx);
-  if (g) {
-    const idx = g[1].indexOf(':');
-    detail.innerHTML = idx > -1
-      ? `<b>${escapeHtml(g[1].slice(0, idx).trim())}</b> — ${escapeHtml(g[1].slice(idx + 1).trim())}`
-      : escapeHtml(g[1]);
-  } else {
-    detail.innerHTML = 'هذي الكلمة مو من الكلمات الغريبة في الآية — جرّب كلمة ثانية';
+  if (!gharibState.list.length) {
+    detail.innerHTML = '<div style="padding:18px; text-align:center; color:var(--text-dim); font-size:13.5px;">📜 لا توجد كلمات غريبة في هذي الآية</div>';
+    detail.hidden = false;
+    return;
   }
-  detail.hidden = false;
-}
-
-// زر "عرض تفسير الآية كاملة" في تبويب الغريب → يعرض كل الكلمات الغريبة
-function showGharibFull() {
-  const detail = $('gharibDetail');
-  if (!gharibState.list.length) { detail.hidden = true; return; }
-  detail.innerHTML = gharibState.list.map(([wn, m]) => {
+  // كلمات الآية — لاستخراج اسم الكلمة من موضعها (بعض البيانات ما فيها اسم الكلمة)
+  const ayahWords = ((QuranSearch.index[currentAyahIdx] || {}).t || '').split(' ');
+  detail.innerHTML = gharibState.list.map(([pos, m]) => {
     const idx2 = m.indexOf(':');
-    const word = idx2 > -1 ? m.slice(0, idx2).trim() : m;
-    const mean = idx2 > -1 ? m.slice(idx2 + 1).trim() : '';
+    let word = idx2 > -1 ? m.slice(0, idx2).trim() : '';
+    let mean = idx2 > -1 ? m.slice(idx2 + 1).trim() : m;
+    // إذا ما فيه اسم للكلمة → نجيبها من موضعها في الآية
+    if (!word && ayahWords[pos - 1]) word = ayahWords[pos - 1];
     return `
       <div class="gharib-full-item">
         <span class="gharib-word">${escapeHtml(word)}</span>
@@ -303,7 +290,7 @@ function showGharibFull() {
   }).join('');
   detail.hidden = false;
 
-  // نسخ أي كلمة من القائمة الكاملة
+  // نسخ أي كلمة من القائمة
   detail.querySelectorAll('.gharib-copy').forEach(btn => {
     btn.addEventListener('click', () => {
       const txt =
@@ -316,8 +303,6 @@ function showGharibFull() {
     });
   });
 }
-
-$('gharibFullBtn').addEventListener('click', showGharibFull);
 
 async function openAyah(s, a) {
   showScreen('ayah');
@@ -334,12 +319,10 @@ async function openAyah(s, a) {
   $('prevAyahBtn').disabled = (idx === 0);
   $('nextAyahBtn').disabled = (idx === QuranSearch.index.length - 1);
 
-  // تصفير المحتوى
+  // تصفير المحتوى — الوضع الافتراضي: تفسير الآية كاملة
   $('wordDetail').hidden = true;
   $('wordTafsirBtn').disabled = true;  // التبويب الافتراضي = تفسير الآية كاملة
-  $('gharibAyahBox').hidden = true;
   $('gharibDetail').hidden = true;
-  $('gharibFullBtn').hidden = true;
   $('irabText').textContent = '';
   $('tafsirLoading').hidden = false;
   $('gharibLoading').hidden = false;
@@ -356,19 +339,17 @@ async function openAyah(s, a) {
     if (t) $('tafsirText').textContent = t;
   } catch (e) { $('tafsirLoading').hidden = true; }
 
-  // غريب الكلمات
+  // غريب الكلمات — قائمة مباشرة بكل الكلمات الغريبة
   try {
     await ensureGharib();
     $('gharibLoading').hidden = true;
     const g = gharibMap.get(s + ':' + a);
     if (g && g.length) {
       gharibState = { list: g, s, a };
-      // بوكس الآية (الخانة الأولى) + معنى أول كلمة غريبة تحت
-      buildGharibAyahBox(ayah, g);
-      // زر عرض كل الكلمات الغريبة — يظهر فقط إذا فيه كلمات غريبة
-      $('gharibFullBtn').hidden = false;
+      renderGharibList();
     } else {
-      $('gharibFullBtn').hidden = true;
+      gharibState = { list: [], s, a };
+      renderGharibList();
     }
   } catch (e) { $('gharibLoading').hidden = true; }
 
@@ -383,16 +364,20 @@ async function openAyah(s, a) {
 // أزرار صندوق التفاعل
 $('wordSearchBtn').addEventListener('click', () => {
   if (!currentWord) return;
+  // رجوع للوضع الكامل قبل البحث
   $('wordDetail').hidden = true;
+  $('wordTafsirBtn').disabled = true;
+  document.querySelectorAll('#ayahText .ayah-word').forEach(w => w.classList.remove('selected'));
   $('searchInput').value = currentWord;
   $('searchInput2').value = currentWord;
   lastQuery = currentWord;
   doSearch(currentWord);
 });
 $('wordTafsirBtn').addEventListener('click', () => {
-  // ننتقل لتفسير الآية كاملة → الزر يتعطل (لأننا صرنا نشوفه)
+  // رجوع لتفسير الآية كاملة → الزر ينطفئ (لأننا صرنا نشوفه)
   $('wordDetail').hidden = true;
   $('wordTafsirBtn').disabled = true;
+  document.querySelectorAll('#ayahText .ayah-word').forEach(w => w.classList.remove('selected'));
   switchTab('tafsir');
 });
 
@@ -569,6 +554,7 @@ async function init() {
   const list = $('resultsList');
   list.innerHTML = '<div class="skeleton"></div><div class="skeleton"></div>';
 
+  // المرحلة 1: الفهرس فقط (خفيف) — البحث يشتغل فوراً
   setProgress(10, 'تهيئة التطبيق...');
   const [okS, okI] = await Promise.all([
     QuranSearch.loadSurahs(),
@@ -581,17 +567,15 @@ async function init() {
     return;
   }
 
-  setProgress(60, 'تحميل التفسير الميسر...');
-  await ensureTafsir().catch(() => {});
-
-  setProgress(85, 'تحميل غريب الكلمات...');
-  await ensureGharib().catch(() => {});
-
+  // نفتح التطبيق بأسرع وقت — التفسير والغريب يتحملون بالخلفية (ما يوقفون البحث)
   setProgress(100, 'الانتهاء...');
   setTimeout(() => {
     hideLoading();
     list.innerHTML = '';
-  }, 300);
+  }, 200);
+
+  ensureTafsir().catch(() => {});
+  ensureGharib().catch(() => {});
 
   setupInstall();
 
