@@ -75,6 +75,7 @@ async function ensureIrab(s) {
 // ---------- البحث ----------
 let debounceTimer = null;
 function doSearch(query, showScreenAfter = true) {
+  lastQuery = query;
   const results = QuranSearch.search(query);
   renderResults(results, query);
   if (showScreenAfter) {
@@ -89,8 +90,7 @@ function doSearch(query, showScreenAfter = true) {
   }
 }
 
-// ---------- إبراز كلمات البحث داخل الآية ----------
-// يعرض الآية كاملة، كلمات البحث بارزة، وكل كلمة قابلة للضغط (بحث عنها)
+// ---------- عرض الآية كاملة في النتائج مع إبراز كلمة البحث ----------
 function highlightAyahWords(text, query) {
   const nq = normalizeArabic(query);
   const terms = nq.split(/\s+/).filter(t => t.length > 1);
@@ -98,7 +98,7 @@ function highlightAyahWords(text, query) {
   return words.map(w => {
     const nw = normalizeArabic(w);
     const isHit = terms.some(t => nw === t || nw.includes(t) || t.includes(nw));
-    return `<span class="res-word${isHit ? ' hit' : ''}" data-q="${escapeHtml(nw)}">${escapeHtml(w)}</span>`;
+    return isHit ? `<mark>${escapeHtml(w)}</mark>` : escapeHtml(w);
   }).join(' ');
 }
 
@@ -124,29 +124,8 @@ function renderResults(results, query) {
           <span>${name} — الآية ${r.a}</span>
         </div>
         <div class="result-preview">${escapeHtml(preview)}</div>
-        <button class="result-tafsir-btn">📖 عرض تفسير الآية كاملة</button>
       </div>`;
   }).join('');
-
-  // ضغط على كلمة داخل الآية → بحث عنها مباشرة
-  list.querySelectorAll('.res-word').forEach(w => {
-    w.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const q = w.dataset.q;
-      $('searchInput').value = q;
-      $('searchInput2').value = q;
-      doSearch(q);
-    });
-  });
-
-  // زر تفسير الآية كاملة
-  list.querySelectorAll('.result-tafsir-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const card = btn.closest('.result-card');
-      openAyah(+card.dataset.s, +card.dataset.a);
-    });
-  });
 }
 
 function escapeHtml(s) {
@@ -207,6 +186,54 @@ function showSuggestions(query, boxId) {
 
 // ---------- بطاقة الآية ----------
 let currentAyahIdx = -1;   // موقع الآية الحالية في الفهرس (للتنقل)
+let lastQuery = '';        // آخر بحث — لإبراز كلمة البحث داخل الآية
+let currentWord = '';      // الكلمة المختارة حالياً في صندوق التفاعل
+
+// عرض الآية ككلمات تفاعلية (كل كلمة قابلة للضغط) مع إبراز كلمة البحث
+function renderAyahInteractive(ayah, query) {
+  const terms = normalizeArabic(query || '').split(/\s+/).filter(t => t.length > 1);
+  const words = ayah.t.split(' ');
+  $('ayahText').innerHTML = words.map(w => {
+    const nw = normalizeArabic(w);
+    const isHit = terms.some(t => nw === t || nw.includes(t) || t.includes(nw));
+    return `<span class="ayah-word${isHit ? ' hit' : ''}" data-q="${escapeHtml(nw)}">${escapeHtml(w)}</span>`;
+  }).join(' ');
+
+  // الضغط على أي كلمة → صندوق التفاعل (تفسيرها + بحث + تفسير كامل)
+  document.querySelectorAll('#ayahText .ayah-word').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      selectWord(el);
+    });
+  });
+}
+
+function selectWord(el) {
+  // إبراز الكلمة المختارة
+  document.querySelectorAll('#ayahText .ayah-word').forEach(w => w.classList.remove('selected'));
+  el.classList.add('selected');
+  currentWord = el.dataset.q;
+
+  // البحث عن تفسير الكلمة من الغريب
+  const g = gharibState.list.find(x => {
+    const m = x[1];
+    const idx2 = m.indexOf(':');
+    const word = (idx2 > -1 ? m.slice(0, idx2).trim() : m);
+    return normalizeArabic(word) === currentWord || normalizeArabic(word).includes(currentWord);
+  });
+
+  const meanEl = $('wordDetailMean');
+  if (g) {
+    const idx2 = g[1].indexOf(':');
+    meanEl.innerHTML = idx2 > -1
+      ? `<b>${escapeHtml(g[1].slice(0, idx2).trim())}</b> — ${escapeHtml(g[1].slice(idx2 + 1).trim())}`
+      : escapeHtml(g[1]);
+  } else {
+    meanEl.textContent = `"${el.textContent}" — اضغط "بحث عن الكلمة" لاستعراض آياتها`;
+  }
+  $('wordDetail').hidden = false;
+  $('wordDetail').scrollIntoView({ block: 'nearest' });
+}
 
 function buildGharibAyahBox(ayah, gList) {
   // الآية كاملة مع إبراز الكلمة المفسَّرة — كل كلمة span
@@ -264,7 +291,6 @@ async function openAyah(s, a) {
   const ayah = QuranSearch.index[idx];
 
   $('ayahTitle').textContent = `${QuranSearch.surahName(s)} — الآية ${a}`;
-  $('ayahText').textContent = `{ ${ayah.t} }`;
   $('ayahRef').textContent = `سورة ${QuranSearch.surahName(s)} — الآية ${a} (${idx + 1} / ${QuranSearch.index.length})`;
   $('ayahSource').textContent = `${DATA_SOURCE} • ${SITE_URL}`;
 
@@ -273,7 +299,7 @@ async function openAyah(s, a) {
   $('nextAyahBtn').disabled = (idx === QuranSearch.index.length - 1);
 
   // تصفير المحتوى
-  $('tafsirText').textContent = '';
+  $('wordDetail').hidden = true;
   $('gharibList').innerHTML = '';
   $('gharibAyahBox').hidden = true;
   $('gharibDetail').hidden = true;
@@ -281,6 +307,9 @@ async function openAyah(s, a) {
   $('tafsirLoading').hidden = false;
   $('gharibLoading').hidden = false;
   switchTab('tafsir');
+
+  // الآية تفاعلية + إبراز كلمة البحث
+  renderAyahInteractive(ayah, lastQuery);
 
   // التفسير الميسر
   try {
@@ -343,6 +372,20 @@ async function openAyah(s, a) {
     if (i) $('irabText').textContent = i;
   } catch (e) {}
 }
+
+// أزرار صندوق التفاعل
+$('wordSearchBtn').addEventListener('click', () => {
+  if (!currentWord) return;
+  $('wordDetail').hidden = true;
+  $('searchInput').value = currentWord;
+  $('searchInput2').value = currentWord;
+  lastQuery = currentWord;
+  doSearch(currentWord);
+});
+$('wordTafsirBtn').addEventListener('click', () => {
+  $('wordDetail').hidden = true;
+  switchTab('tafsir');
+});
 
 // التنقل: الآية السابقة / التالية
 function goAyah(offset) {
