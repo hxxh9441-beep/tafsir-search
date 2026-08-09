@@ -574,6 +574,34 @@ body {
   word-break: break-word;
 }
 .gharib-detail b { color: var(--accent); }
+
+/* ط²ط± ط¹ط±ط¶ ظƒظ„ ط§ظ„ظƒظ„ظ…ط§طھ ط§ظ„ط؛ط±ظٹط¨ط© */
+.gharib-full-btn {
+  display: block;
+  width: 100%;
+  margin-bottom: 12px;
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  background: var(--input-bg);
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+}
+.gharib-full-btn:hover { border-color: var(--accent); background: var(--chip-bg); }
+.gharib-full-btn:active { transform: scale(0.98); }
+.gharib-full-item {
+  display: flex;
+  gap: 10px;
+  padding: 9px 2px;
+  border-bottom: 1px solid var(--card-border);
+  align-items: flex-start;
+  min-width: 0;
+}
+.gharib-full-item:last-child { border-bottom: none; }
 .section { margin-top: 14px; }
 .section-title {
   font-size: 13.5px;
