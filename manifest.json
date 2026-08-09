@@ -1,0 +1,17 @@
+{
+  "name": "الباحث القرآني | Tafsir Search",
+  "short_name": "الباحث القرآني",
+  "description": "محرك بحث قرآني سريع — آية، تفسير ميسر، إعراب، وغريب الكلمات في بطاقة واحدة، يعمل بدون إنترنت",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F4F6FA",
+  "theme_color": "#0B1220",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
