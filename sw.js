@@ -1,5 +1,5 @@
 /* سيرفر الخدمة — الباحث القرآني (Offline-First) */
-const CACHE = 'quran-search-v3';
+const CACHE = 'quran-search-v5';
 const APP_SHELL = [
   './',
   './index.html',
@@ -9,7 +9,8 @@ const APP_SHELL = [
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  './fonts/ThmanyahSans-Regular.ttf',
+  './fonts/thmanyah-serif-regular.woff2',
+  './fonts/thmanyah-serif-bold.woff2',
   './fonts/amiri.woff2'
 ];
 
