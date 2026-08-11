@@ -361,17 +361,7 @@ function renderWordMode() {
       <div class="gharib-full-item">
         <span class="gharib-word">${escapeHtml(w)}</span>
         <span class="gharib-mean">${escapeHtml(g.mean)}</span>
-        <button class="gharib-copy" title="نسخ الكلمة مع المعنى والمصدر" data-word="${escapeHtml(w)}" data-mean="${escapeHtml(g.mean)}">📋</button>
       </div>`;
-    detail.querySelector('.gharib-copy').addEventListener('click', () => {
-      const txt =
-        `{ ${(QuranSearch.index[currentAyahIdx] || {}).t || ''} }\n` +
-        `الكلمة: ${w}\n` +
-        `المعنى: ${g.mean}\n` +
-        `سورة ${QuranSearch.surahName(gharibState.s)} — الآية ${gharibState.a}\n\n` +
-        DATA_SOURCE;
-      copyText(txt);
-    });
   } else {
     detail.innerHTML = `<div class="empty-hint">«${escapeHtml(currentWord)}» ليست من الكلمات الغريبة في هذي الآية</div>`;
   }
@@ -422,23 +412,9 @@ function renderGharibList() {
       <div class="gharib-full-item">
         <span class="gharib-word">${escapeHtml(word)}</span>
         <span class="gharib-mean">${escapeHtml(mean)}</span>
-        <button class="gharib-copy" title="نسخ الكلمة مع المعنى والمصدر" data-word="${escapeHtml(word)}" data-mean="${escapeHtml(mean)}">📋</button>
       </div>`;
   }).join('');
   detail.hidden = false;
-
-  // نسخ أي كلمة من القائمة
-  detail.querySelectorAll('.gharib-copy').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const txt =
-        `{ ${(QuranSearch.index[currentAyahIdx] || {}).t || ''} }\n` +
-        `الكلمة: ${btn.dataset.word}\n` +
-        `المعنى: ${btn.dataset.mean}\n` +
-        `سورة ${QuranSearch.surahName(gharibState.s)} — الآية ${gharibState.a}\n\n` +
-        DATA_SOURCE;
-      copyText(txt);
-    });
-  });
 }
 
 let ayahSeq = 0;   // رقم تسلسلي — يمنع تسابق التنقل السريع بين الآيات
