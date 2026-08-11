@@ -38,21 +38,44 @@ async function loadJSON(url) {
   if (dataCache[url]) return dataCache[url];
   const res = await fetch(url);
   if (!res.ok) throw new Error('فشل تحميل ' + url);
-  const data = await res.json();
+  let data;
+  if (url.endsWith('.gz')) {
+    // فك ضغط gzip (ملفات التفاسير الإضافية)
+    const buf = await res.arrayBuffer();
+    const stream = new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'));
+    const text = await new Response(stream).text();
+    data = JSON.parse(text);
+  } else {
+    data = await res.json();
+  }
   dataCache[url] = data;
   return data;
 }
 
 // بيانات التفسير/الغريب/الإعراب — خريطة (s,a)→نص
-let tafsirMap = null;
-let gharibMap = null;
-let irabMap = null;
-
-async function ensureTafsir() {
-  if (tafsirMap) return;
-  const data = await loadJSON('data/tafsir.json');
-  tafsirMap = new Map();
-  for (const item of data) tafsirMap.set(item.s + ':' + item.a, item.t);
+let tafsirMaps = {};     // id → Map(s:a → نص)
+let currentTafsirId = 'muyassar';   // التفسير المحدد حالياً
+const TAFSIR_LIST = [
+  { id: 'muyassar',  name: 'التفسير الميسر',    file: 'data/tafsir.json',             label: 'التفسير الميسر' },
+  { id: 'saadi',     name: 'تفسير السعدي',      file: 'data/tafsir-saadi.json.gz',     label: 'تفسير السعدي' },
+  { id: 'ibnkathir', name: 'تفسير ابن كثير',    file: 'data/tafsir-ibnkathir.json.gz', label: 'تفسير ابن كثير' },
+  { id: 'mukhtasar', name: 'التفسير المختصر',   file: 'data/tafsir-mukhtasar.json.gz', label: 'التفسير المختصر' }
+];
+function tafsirName(id) {
+  const def = TAFSIR_LIST.find(x => x.id === id);
+  return def ? def.name : 'التفسير';
+}
+function sourceFor(id) {
+  return `المصدر: ${tafsirName(id)} + غريب الكلمات + الإعراب — مركز تفسير للدراسات القرآنية (رخصة CC BY 4.0)`;
+}
+async function ensureTafsir(id = currentTafsirId) {
+  if (tafsirMaps[id]) return tafsirMaps[id];
+  const def = TAFSIR_LIST.find(x => x.id === id);
+  const data = await loadJSON(def.file);
+  const map = new Map();
+  for (const item of data) map.set(item.s + ':' + item.a, item.t);
+  tafsirMaps[id] = map;
+  return map;
 }
 
 async function ensureGharib() {
@@ -133,8 +156,7 @@ function escapeHtml(s) {
 }
 
 // ---------- نسخ للنص (مع بديل للأجهزة القديمة) ----------
-const SITE_URL = 'https://hxxh9441-beep.github.io/tafsir-search/';
-const DATA_SOURCE = 'المصدر: التفسير الميسر + غريب الكلمات + الإعراب — مركز تفسير للدراسات القرآنية (رخصة CC BY 4.0)';
+const DATA_SOURCE = 'المصدر: غريب الكلمات + الإعراب — مركز تفسير للدراسات القرآنية (رخصة CC BY 4.0)';
 
 function showToast(msg) {
   const t = $('toast');
@@ -309,7 +331,7 @@ function renderWordMode() {
         `الكلمة: ${w}\n` +
         `المعنى: ${g.mean}\n` +
         `سورة ${QuranSearch.surahName(gharibState.s)} — الآية ${gharibState.a}\n\n` +
-        DATA_SOURCE + '\n' + SITE_URL;
+        DATA_SOURCE;
       copyText(txt);
     });
   } else {
@@ -372,7 +394,7 @@ function renderGharibList() {
         `الكلمة: ${btn.dataset.word}\n` +
         `المعنى: ${btn.dataset.mean}\n` +
         `سورة ${QuranSearch.surahName(gharibState.s)} — الآية ${gharibState.a}\n\n` +
-        DATA_SOURCE + '\n' + SITE_URL;
+        DATA_SOURCE;
       copyText(txt);
     });
   });
@@ -387,7 +409,7 @@ async function openAyah(s, a) {
 
   $('ayahTitle').textContent = `${QuranSearch.surahName(s)} — الآية ${a}`;
   $('ayahRef').textContent = `سورة ${QuranSearch.surahName(s)} — الآية ${a}`;
-  $('ayahSource').textContent = `${DATA_SOURCE} • ${SITE_URL}`;
+  $('ayahSource').textContent = sourceFor(currentTafsirId);
 
   // تفعيل/تعطيل أزرار التنقل
   $('prevAyahBtn').disabled = (idx === 0);
@@ -409,9 +431,9 @@ async function openAyah(s, a) {
   // الآية تفاعلية + إبراز كلمة البحث
   renderAyahInteractive(ayah, lastQuery);
 
-  // التفسير الميسر
+  // التفسير المحدد (الميسر افتراضياً)
   try {
-    await ensureTafsir();
+    const tafsirMap = await ensureTafsir();
     $('tafsirLoading').hidden = true;
     const t = tafsirMap.get(s + ':' + a);
     if (t) {
@@ -454,23 +476,80 @@ function goAyah(offset) {
   openAyah(next.s, next.a);
 }
 
-// نسخ الآية كاملة (نص + تفسير + مصدر + رابط)
+// نسخ الآية كاملة (نص + تفسير + مصدر)
 async function copyAyah() {
   const idx = currentAyahIdx;
   if (idx === -1) return;
   const ayah = QuranSearch.index[idx];
-  const t = (tafsirMap && tafsirMap.get(ayah.s + ':' + ayah.a)) || '';
+  const map = tafsirMaps[currentTafsirId];
+  const t = (map && map.get(ayah.s + ':' + ayah.a)) || '';
   const txt =
     `{ ${ayah.t} }\n` +
     `سورة ${QuranSearch.surahName(ayah.s)} — الآية ${ayah.a}\n\n` +
-    (t ? `التفسير الميسر:\n${t}\n\n` : '') +
-    DATA_SOURCE + '\n' + SITE_URL;
+    (t ? `${tafsirName(currentTafsirId)}:\n${t}\n\n` : '') +
+    sourceFor(currentTafsirId);
   copyText(txt);
 }
 
 $('prevAyahBtn').addEventListener('click', () => goAyah(-1));
 $('nextAyahBtn').addEventListener('click', () => goAyah(1));
 $('copyAyahBtn').addEventListener('click', copyAyah);
+
+// نسخ محتوى الصناديق الثلاثة (ميزة موحّدة في كل الأقسام)
+function copyBoxText(kind) {
+  const idx = currentAyahIdx;
+  if (idx === -1) return;
+  const ayah = QuranSearch.index[idx];
+  const ref = `سورة ${QuranSearch.surahName(ayah.s)} — الآية ${ayah.a}`;
+  let title = '';
+  let body = '';
+  if (kind === 'tafsir') {
+    title = tafsirName(currentTafsirId);
+    body = $('tafsirText').textContent;
+  } else if (kind === 'gharib') {
+    title = 'غريب الكلمات';
+    const items = Array.from(document.querySelectorAll('#gharibDetail .gharib-full-item'));
+    body = items.map(it => {
+      const w = it.querySelector('.gharib-word')?.textContent || '';
+      const m = it.querySelector('.gharib-mean')?.textContent || '';
+      return w ? `${w}: ${m}` : m;
+    }).join('\n');
+  } else if (kind === 'irab') {
+    title = 'الإعراب';
+    body = $('irabText').textContent;
+  }
+  const txt = `{ ${ayah.t} }\n${ref}\n\n${title}:\n${body}\n\n${sourceFor(currentTafsirId)}`;
+  copyText(txt);
+}
+$('copyTafsirBtn').addEventListener('click', () => copyBoxText('tafsir'));
+$('copyGharibBtn').addEventListener('click', () => copyBoxText('gharib'));
+$('copyIrabBtn').addEventListener('click', () => copyBoxText('irab'));
+
+// ---------- اختيار التفسير (الميسر / السعدي / ابن كثير / المختصر) ----------
+// استرجاع التفسير المحفوظ
+try {
+  const saved = localStorage.getItem('tafsirId');
+  if (saved && TAFSIR_LIST.some(x => x.id === saved)) currentTafsirId = saved;
+} catch (err) {}
+$('tafsirSelect').value = currentTafsirId;
+
+$('tafsirSelect').addEventListener('change', async (e) => {
+  currentTafsirId = e.target.value;
+  try { localStorage.setItem('tafsirId', currentTafsirId); } catch (err) {}
+  $('ayahSource').textContent = sourceFor(currentTafsirId);
+  const idx = currentAyahIdx;
+  if (idx === -1) return;
+  const ayah = QuranSearch.index[idx];
+  $('tafsirLoading').hidden = false;
+  try {
+    const map = await ensureTafsir();
+    $('tafsirLoading').hidden = true;
+    const t = map.get(ayah.s + ':' + ayah.a) || '';
+    fullTafsirText = t;
+    // لا نكتب فوق تفسير الكلمة إذا المستخدم يختار كلمة الحين
+    if (!inWordMode) $('tafsirText').textContent = t;
+  } catch (err) { $('tafsirLoading').hidden = true; }
+});
 
 // تبديل التبويبات
 function switchTab(name) {
