@@ -187,7 +187,11 @@ function showSuggestions(query, boxId) {
 // ---------- بطاقة الآية ----------
 let currentAyahIdx = -1;   // موقع الآية الحالية في الفهرس (للتنقل)
 let lastQuery = '';        // آخر بحث — لإبراز كلمة البحث داخل الآية
-let currentWord = '';      // الكلمة المختارة حالياً في صندوق التفاعل
+let currentWord = '';      // الكلمة المختارة حالياً
+let selectedWordIdx = -1;  // موضع الكلمة المختارة في الآية
+let fullTafsirText = '';   // نص تفسير الآية كاملة (للرجوع من وضع الكلمة)
+let fullIrabText = '';     // نص إعراب الآية كاملة (للرجوع من وضع الكلمة)
+let inWordMode = false;    // هل نعرض تفسير كلمة بدل تفسير الآية كاملة؟
 let gharibState = { list: [], s: 0, a: 0 };
 
 // عرض الآية ككلمات تفاعلية (كل كلمة قابلة للضغط) مع إبراز كلمة البحث
@@ -244,24 +248,91 @@ function selectWord(el) {
   document.querySelectorAll('#ayahText .ayah-word').forEach(w => w.classList.remove('selected'));
   el.classList.add('selected');
   currentWord = el.dataset.q;
+  selectedWordIdx = Array.prototype.indexOf.call(el.parentNode.children, el);
 
-  // موضع الكلمة في الآية → البحث بالموقع أولاً (الأدق)، ثم بالاسم
-  const wIdx = Array.prototype.indexOf.call(el.parentNode.children, el);
-  const g = findGharibByIndex(wIdx) || findGharibWord(currentWord);
+  // كل التبويبات الثلاثة تعرض تفسير الكلمة المحددة فقط
+  renderWordMode();
+  // الزر مفعّل — نعرض تفسير كلمة الحين
+  $('wordTafsirBtn').disabled = false;
+}
 
-  const meanEl = $('wordDetailMean');
+// استخراج إعراب كلمة واحدة من نص الإعراب الكامل (كل سطر: كلمة: إعرابها)
+function findIrabWord(word) {
+  if (!fullIrabText) return '';
+  const nw = normalizeArabic(word);
+  const lines = fullIrabText.split('\n');
+  // مطابقة تامة أولاً
+  for (const line of lines) {
+    const ci = line.indexOf(':');
+    if (ci === -1) continue;
+    if (normalizeArabic(line.slice(0, ci).trim()) === nw) return line.trim();
+  }
+  // مطابقة جزئية (مثل "لا" ضمن "لا إله")
+  for (const line of lines) {
+    const ci = line.indexOf(':');
+    if (ci === -1) continue;
+    const lw = normalizeArabic(line.slice(0, ci).trim());
+    if (lw.includes(nw) || nw.includes(lw)) return line.trim();
+  }
+  return '';
+}
+
+// وضع الكلمة: التبويبات الثلاثة (تفسير/غريب/إعراب) تعرض تفسير الكلمة المحددة فقط
+function renderWordMode() {
+  // 1) التفسير الميسر — تفسير الكلمة
+  const g = findGharibByIndex(selectedWordIdx) || findGharibWord(currentWord);
+  const tafsirEl = $('tafsirText');
   if (g) {
-    meanEl.innerHTML = g.word
+    tafsirEl.innerHTML = g.word
       ? `<b>${escapeHtml(g.word)}</b> — ${escapeHtml(g.mean)}`
-      : `<b>${escapeHtml(el.textContent)}</b> — ${escapeHtml(g.mean)}`;
+      : `<b>${escapeHtml(currentWord)}</b> — ${escapeHtml(g.mean)}`;
   } else {
-    meanEl.innerHTML = `«${escapeHtml(el.textContent)}» مو من الكلمات الغريبة في هذي الآية — يمديك تبحث عنها في القرآن كامل.`;
+    tafsirEl.innerHTML = `«${escapeHtml(currentWord)}» مو من الكلمات الغريبة في هذي الآية`;
   }
 
-  // صندوق الكلمة يظهر تحت الآية مباشرة + الزر مفعّل (نعرض تفسير كلمة الحين)
-  $('wordDetail').hidden = false;
-  $('wordTafsirBtn').disabled = false;
-  $('wordDetail').scrollIntoView({ block: 'nearest' });
+  // 2) غريب الكلمات — الكلمة المحددة فقط
+  const detail = $('gharibDetail');
+  if (g) {
+    const w = g.word || currentWord;
+    detail.innerHTML = `
+      <div class="gharib-full-item">
+        <span class="gharib-word">${escapeHtml(w)}</span>
+        <span class="gharib-mean">${escapeHtml(g.mean)}</span>
+        <button class="gharib-copy" title="نسخ الكلمة مع المعنى والمصدر" data-word="${escapeHtml(w)}" data-mean="${escapeHtml(g.mean)}">📋</button>
+      </div>`;
+    detail.querySelector('.gharib-copy').addEventListener('click', () => {
+      const txt =
+        `{ ${(QuranSearch.index[currentAyahIdx] || {}).t || ''} }\n` +
+        `الكلمة: ${w}\n` +
+        `المعنى: ${g.mean}\n` +
+        `سورة ${QuranSearch.surahName(gharibState.s)} — الآية ${gharibState.a}\n\n` +
+        DATA_SOURCE + '\n' + SITE_URL;
+      copyText(txt);
+    });
+  } else {
+    detail.innerHTML = `<div style="padding:18px; text-align:center; color:var(--text-dim); font-size:13.5px;">«${escapeHtml(currentWord)}» مو من الكلمات الغريبة في هذي الآية</div>`;
+  }
+  detail.hidden = false;
+
+  // 3) الإعراب — إعراب الكلمة المحددة فقط
+  const irabEl = $('irabText');
+  const irabLine = findIrabWord(currentWord);
+  irabEl.textContent = irabLine
+    ? irabLine
+    : `لا يوجد إعراب لـ«${currentWord}» في هذي الآية`;
+
+  inWordMode = true;
+}
+
+// الرجوع للوضع الكامل: التبويبات الثلاثة تعرض تفسير/غريب/إعراب الآية كاملة
+function restoreFullMode() {
+  $('tafsirText').textContent = fullTafsirText;
+  renderGharibList();           // القائمة الكاملة للغريب
+  $('irabText').textContent = fullIrabText;
+  inWordMode = false;
+  $('wordTafsirBtn').disabled = true;
+  document.querySelectorAll('#ayahText .ayah-word').forEach(w => w.classList.remove('selected'));
+  switchTab('tafsir');
 }
 
 // ---------- تبويب الغريب ----------
@@ -312,7 +383,7 @@ async function openAyah(s, a) {
   const ayah = QuranSearch.index[idx];
 
   $('ayahTitle').textContent = `${QuranSearch.surahName(s)} — الآية ${a}`;
-  $('ayahRef').textContent = `سورة ${QuranSearch.surahName(s)} — الآية ${a} (${idx + 1} / ${QuranSearch.index.length})`;
+  $('ayahRef').textContent = `سورة ${QuranSearch.surahName(s)} — الآية ${a}`;
   $('ayahSource').textContent = `${DATA_SOURCE} • ${SITE_URL}`;
 
   // تفعيل/تعطيل أزرار التنقل
@@ -320,7 +391,11 @@ async function openAyah(s, a) {
   $('nextAyahBtn').disabled = (idx === QuranSearch.index.length - 1);
 
   // تصفير المحتوى — الوضع الافتراضي: تفسير الآية كاملة
-  $('wordDetail').hidden = true;
+  fullTafsirText = '';
+  fullIrabText = '';
+  inWordMode = false;
+  selectedWordIdx = -1;
+  $('tafsirText').textContent = '';
   $('wordTafsirBtn').disabled = true;  // التبويب الافتراضي = تفسير الآية كاملة
   $('gharibDetail').hidden = true;
   $('irabText').textContent = '';
@@ -336,7 +411,11 @@ async function openAyah(s, a) {
     await ensureTafsir();
     $('tafsirLoading').hidden = true;
     const t = tafsirMap.get(s + ':' + a);
-    if (t) $('tafsirText').textContent = t;
+    if (t) {
+      fullTafsirText = t;
+      // لا نكتب فوق تفسير الكلمة إذا المستخدم يختار كلمة الحين
+      if (!inWordMode) $('tafsirText').textContent = t;
+    }
   } catch (e) { $('tafsirLoading').hidden = true; }
 
   // غريب الكلمات — قائمة مباشرة بكل الكلمات الغريبة
@@ -344,42 +423,25 @@ async function openAyah(s, a) {
     await ensureGharib();
     $('gharibLoading').hidden = true;
     const g = gharibMap.get(s + ':' + a);
-    if (g && g.length) {
-      gharibState = { list: g, s, a };
-      renderGharibList();
-    } else {
-      gharibState = { list: [], s, a };
-      renderGharibList();
-    }
+    gharibState = { list: g && g.length ? g : [], s, a };
+    // إذا المستخدم اختار كلمة قبل ما تكمل البيانات → نعيد عرض وضع الكلمة بالبيانات الكاملة
+    if (inWordMode && selectedWordIdx > -1) renderWordMode();
+    else renderGharibList();
   } catch (e) { $('gharibLoading').hidden = true; }
 
   // الإعراب — عند الطلب (الأثقل)
   try {
     await ensureIrab(s);
     const i = irabMap.get(s + ':' + a);
-    if (i) $('irabText').textContent = i;
+    fullIrabText = i || '';
+    // إذا المستخدم في وضع كلمة → نحدّث إعراب الكلمة المحددة
+    if (inWordMode && selectedWordIdx > -1) renderWordMode();
+    else $('irabText').textContent = fullIrabText;
   } catch (e) {}
 }
 
-// أزرار صندوق التفاعل
-$('wordSearchBtn').addEventListener('click', () => {
-  if (!currentWord) return;
-  // رجوع للوضع الكامل قبل البحث
-  $('wordDetail').hidden = true;
-  $('wordTafsirBtn').disabled = true;
-  document.querySelectorAll('#ayahText .ayah-word').forEach(w => w.classList.remove('selected'));
-  $('searchInput').value = currentWord;
-  $('searchInput2').value = currentWord;
-  lastQuery = currentWord;
-  doSearch(currentWord);
-});
-$('wordTafsirBtn').addEventListener('click', () => {
-  // رجوع لتفسير الآية كاملة → الزر ينطفئ (لأننا صرنا نشوفه)
-  $('wordDetail').hidden = true;
-  $('wordTafsirBtn').disabled = true;
-  document.querySelectorAll('#ayahText .ayah-word').forEach(w => w.classList.remove('selected'));
-  switchTab('tafsir');
-});
+// زر الرجوع لتفسير الآية كاملة
+$('wordTafsirBtn').addEventListener('click', restoreFullMode);
 
 // التنقل: الآية السابقة / التالية
 function goAyah(offset) {
