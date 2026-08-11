@@ -12,16 +12,38 @@ const screens = {
 
 // ---------- الثيم ----------
 const THEME_KEY = 'quran-search-theme';
+const mqDark = window.matchMedia('(prefers-color-scheme: dark)');
+function systemTheme() { return mqDark.matches ? 'night' : 'day'; }
 function applyTheme(t) {
   document.documentElement.setAttribute('data-theme', t);
-  $('themeBtn2').textContent = t === 'night' ? '☀️' : '🌙';
+  const icon = t === 'night' ? '☀️' : '🌙';
+  const b1 = $('themeBtn1'); if (b1) b1.textContent = icon;
+  const b2 = $('themeBtn2'); if (b2) b2.textContent = icon;
   $('metaTheme').setAttribute('content', t === 'night' ? '#0B1220' : '#F4F6FA');
-  try { localStorage.setItem(THEME_KEY, t); } catch(e){}
 }
-let theme = 'day';
-try { theme = localStorage.getItem(THEME_KEY) || (matchMedia('(prefers-color-scheme: dark)').matches ? 'night' : 'day'); } catch(e){}
+// تلقائي مع نظام الجهاز — إلا إذا المستخدم اختار يدوياً سابقاً
+let theme;
+try {
+  const saved = localStorage.getItem(THEME_KEY);
+  theme = (saved === 'day' || saved === 'night') ? saved : systemTheme();
+} catch(e) { theme = systemTheme(); }
 applyTheme(theme);
-$('themeBtn2').addEventListener('click', () => applyTheme(document.documentElement.getAttribute('data-theme') === 'night' ? 'day' : 'night'));
+
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme') === 'night' ? 'day' : 'night';
+  try { localStorage.setItem(THEME_KEY, cur); } catch(e){}
+  applyTheme(cur);
+}
+const tb1 = $('themeBtn1'); if (tb1) tb1.addEventListener('click', toggleTheme);
+const tb2 = $('themeBtn2'); if (tb2) tb2.addEventListener('click', toggleTheme);
+
+// متابعة تغيير نظام الجهاز (ليل/نهار) — فقط ما لم يحدد المستخدم يدوياً
+if (mqDark.addEventListener) {
+  mqDark.addEventListener('change', (e) => {
+    try { if (localStorage.getItem(THEME_KEY)) return; } catch(err) { return; }
+    applyTheme(e.matches ? 'night' : 'day');
+  });
+}
 
 // ---------- التنقل بين الشاشات ----------
 function showScreen(name) {
