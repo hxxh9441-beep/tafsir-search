@@ -1,5 +1,5 @@
 /* سيرفر الخدمة — الباحث القرآني (Offline-First + تحديث فوري) */
-const CACHE = 'quran-search-v20';
+const CACHE = 'quran-search-v25';
 const APP_SHELL = [
   './',
   './index.html',
