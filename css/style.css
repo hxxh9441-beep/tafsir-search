@@ -712,11 +712,14 @@ body {
 }
 .gharib-item:last-child { border-bottom: none; }
 .gharib-word {
-  flex-shrink: 0;
+  flex-shrink: 1;
   font-weight: 800;
   font-size: 15px;
   color: var(--accent);
-  min-width: 80px;
+  min-width: 60px;
+  max-width: 42%;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 .gharib-mean { font-size: 13.5px; line-height: 1.9; color: var(--text-main); }
 .loading-hint { font-size: 12px; color: var(--text-dim); margin-top: 8px; }
