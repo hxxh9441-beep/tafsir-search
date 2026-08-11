@@ -120,9 +120,21 @@ async function ensureIrab(s) {
 
 // ---------- البحث ----------
 let debounceTimer = null;
+let dataReady = false;   // هل الفهرس جاهز؟ (بدون شاشة تحميل — المستخدم يشوف الرئيسية فوراً)
 // البحث الكامل (زر البحث / Enter) — يعرض النتائج في القائمة المنسدلة بدل صفحة منفصلة
 function doSearch(query) {
   lastQuery = query;
+  if (!dataReady) {
+    const box = $('suggestBox');
+    box.innerHTML = `
+      <div class="search-empty">
+        <div style="font-size:32px; margin-bottom:8px;">⏳</div>
+        <div style="font-weight:700;">جاري تجهيز البيانات...</div>
+        <div style="font-size:13px; color:var(--text-dim);">ثواني وينفتح البحث</div>
+      </div>`;
+    box.hidden = false;
+    return;
+  }
   const results = QuranSearch.search(query);
   showFullResults(results, query);
 }
@@ -209,6 +221,15 @@ async function copyText(text) {
 function showSuggestions(query, boxId) {
   const box = $(boxId);
   if (!query || query.trim().length < 2) { box.hidden = true; return; }
+  if (!dataReady) {
+    box.innerHTML = `
+      <div class="search-empty">
+        <div style="font-size:26px; margin-bottom:6px;">⏳</div>
+        <div style="font-weight:700; font-size:14px;">جاري تجهيز البيانات...</div>
+      </div>`;
+    box.hidden = false;
+    return;
+  }
   const sugg = QuranSearch.suggestions(query, 6);
   if (!sugg.length) { box.hidden = true; return; }
   const nq = normalizeArabic(query);
@@ -365,6 +386,7 @@ function renderWordMode() {
 }
 
 // الرجوع للوضع الكامل: التبويبات الثلاثة تعرض تفسير/غريب/إعراب الآية كاملة
+// (نبقى في القسم الحالي — لا نقفز لقسم التفسير)
 function restoreFullMode() {
   $('tafsirText').textContent = fullTafsirText;
   $('tafsirText').classList.toggle('empty', !fullTafsirText);
@@ -374,7 +396,6 @@ function restoreFullMode() {
   inWordMode = false;
   $('wordTafsirBtn').disabled = true;
   document.querySelectorAll('#ayahText .ayah-word').forEach(w => w.classList.remove('selected'));
-  switchTab('tafsir');
 }
 
 // ---------- تبويب الغريب ----------
@@ -662,20 +683,10 @@ $('backBtn2').addEventListener('click', () => showScreen('home')); // من ال�
 // ربط حقل البحث الرئيسي
 bindSearch('searchInput', 'searchBtn', 'clearBtn', 'suggestBox');
 
-// ---------- شريط التحميل ----------
-function setProgress(pct, text) {
-  $('progressFill').style.width = pct + '%';
-  $('loadingText').textContent = text;
-}
-function hideLoading() {
-  $('loadingScreen').classList.add('hidden');
-}
-
 // ---------- الإقلاع ----------
 async function init() {
   // كشف الفتح المباشر (file://) — البيانات لن تعمل
   if (location.protocol === 'file:') {
-    hideLoading();
     const msg = $('homeMessage');
     msg.hidden = false;
     msg.innerHTML = `
@@ -691,27 +702,23 @@ async function init() {
     return;
   }
 
-  // المرحلة 1: الفهرس فقط (خفيف) — البحث يشتغل فوراً
-  setProgress(10, 'تهيئة التطبيق...');
+  // المرحلة 1: الفهرس فقط (خفيف) — البحث يشتغل فوراً (الرئيسية ظاهرة من البداية بدون شاشة تحميل)
   const [okS, okI] = await Promise.all([
     QuranSearch.loadSurahs(),
     QuranSearch.loadIndex(),
   ]);
 
   if (!okI) {
-    hideLoading();
     const msg = $('homeMessage');
     msg.hidden = false;
     msg.innerHTML = '<div style="text-align:center; padding:24px; color:var(--text-dim);">⚠️ تعذّر تحميل البيانات — تأكد من الاتصال أول مرة</div>';
     return;
   }
 
-  // نفتح التطبيق بأسرع وقت — التفسير والغريب يتحملون بالخلفية (ما يوقفون البحث)
-  setProgress(100, 'الانتهاء...');
-  setTimeout(() => {
-    hideLoading();
-  }, 200);
+  // الفهرس جاهز — البحث يشتغل الآن
+  dataReady = true;
 
+  // التفسير والغريب يتحملون بالخلفية (ما يوقفون البحث)
   ensureTafsir().catch(() => {});
   ensureGharib().catch(() => {});
 
