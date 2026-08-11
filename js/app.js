@@ -175,7 +175,6 @@ function escapeHtml(s) {
 }
 
 // ---------- نسخ للنص (مع بديل للأجهزة القديمة) ----------
-const DATA_SOURCE = 'المصدر: 4 تفاسير (الميسر، السعدي، ابن كثير، المختصر) + غريب الكلمات + الإعراب — مركز تفسير للدراسات القرآنية (رخصة CC BY 4.0)';
 
 function showToast(msg) {
   const t = $('toast');
@@ -273,32 +272,29 @@ function renderAyahInteractive(ayah, query) {
   });
 }
 
-// البحث عن كلمة في قائمة الغريب حسب موضعها في الآية (الأدق — مثل تبويب الغريب)
+// البحث عن كلمة في قائمة الغريب حسب موضعها في الآية (الأدق — الكلمة من الآية، المعنى كامل من البيانات)
 function findGharibByIndex(wIdx) {
   if (!gharibState || !gharibState.list.length) return null;
   const g = gharibState.list.find(x => x[0] - 1 === wIdx);
   if (!g) return null;
-  const idx2 = g[1].indexOf(':');
-  return {
-    word: idx2 > -1 ? g[1].slice(0, idx2).trim() : '',
-    mean: idx2 > -1 ? g[1].slice(idx2 + 1).trim() : g[1]
-  };
+  const ayahWords = ((QuranSearch.index[currentAyahIdx] || {}).t || '').split(' ');
+  return { word: ayahWords[wIdx] || '', mean: g[1] };
 }
 
 // البحث عن كلمة في قائمة الغريب (تطبيع كامل)
 function findGharibWord(word) {
   const nw = normalizeArabic(word);
-  for (const [wn, m] of gharibState.list) {
-    const idx2 = m.indexOf(':');
-    const w = (idx2 > -1 ? m.slice(0, idx2).trim() : m);
-    if (normalizeArabic(w) === nw) return { word: w, mean: idx2 > -1 ? m.slice(idx2 + 1).trim() : m };
+  const ayahWords = ((QuranSearch.index[currentAyahIdx] || {}).t || '').split(' ');
+  // مطابقة تامة: كلمة الآية في موضعها = الكلمة المطلوبة
+  for (const [pos, m] of gharibState.list) {
+    const w = ayahWords[pos - 1] || '';
+    if (normalizeArabic(w) === nw) return { word: w, mean: m };
   }
   // محاولة جزئية (مثل "لا" ضمن "لا إله")
-  for (const [wn, m] of gharibState.list) {
-    const idx2 = m.indexOf(':');
-    const w = (idx2 > -1 ? m.slice(0, idx2).trim() : m);
+  for (const [pos, m] of gharibState.list) {
+    const w = ayahWords[pos - 1] || '';
     const wn2 = normalizeArabic(w);
-    if (wn2.includes(nw) || nw.includes(wn2)) return { word: w, mean: idx2 > -1 ? m.slice(idx2 + 1).trim() : m };
+    if (wn2.includes(nw) || nw.includes(wn2)) return { word: w, mean: m };
   }
   return null;
 }
@@ -308,7 +304,8 @@ function selectWord(el) {
   document.querySelectorAll('#ayahText .ayah-word').forEach(w => w.classList.remove('selected'));
   el.classList.add('selected');
   currentWord = el.dataset.q;
-  selectedWordIdx = Array.prototype.indexOf.call(el.parentNode.children, el);
+  // الفهرس بين كلمات الآية فقط (نتجاهل أقواس { } لأنها عناصر في نفس المستوى)
+  selectedWordIdx = Array.from(el.parentNode.querySelectorAll('.ayah-word')).indexOf(el);
 
   // كل التبويبات الثلاثة تعرض تفسير الكلمة المحددة فقط — نبقى في القسم الحالي (لا نقفز للتفسير)
   renderWordMode();
@@ -338,22 +335,11 @@ function findIrabWord(word) {
   return '';
 }
 
-// وضع الكلمة: التبويبات الثلاثة (تفسير/غريب/إعراب) تعرض تفسير الكلمة المحددة فقط
+// وضع الكلمة: الغريب والإعراب يعرضان الكلمة المحددة فقط
+// (قسم التفسير يبقى على تفسير الآية كاملة — لا يختلط ببيانات غريب الكلمات)
 function renderWordMode() {
-  // 1) التفسير الميسر — تفسير الكلمة
+  // 1) غريب الكلمات — الكلمة المحددة فقط
   const g = findGharibByIndex(selectedWordIdx) || findGharibWord(currentWord);
-  const tafsirEl = $('tafsirText');
-  if (g) {
-    tafsirEl.innerHTML = g.word
-      ? `<b>${escapeHtml(g.word)}</b> — ${escapeHtml(g.mean)}`
-      : `<b>${escapeHtml(currentWord)}</b> — ${escapeHtml(g.mean)}`;
-    tafsirEl.classList.remove('empty');
-  } else {
-    tafsirEl.innerHTML = `«${escapeHtml(currentWord)}» ليست من الكلمات الغريبة في هذي الآية`;
-    tafsirEl.classList.add('empty');
-  }
-
-  // 2) غريب الكلمات — الكلمة المحددة فقط
   const detail = $('gharibDetail');
   if (g) {
     const w = g.word || currentWord;
@@ -367,7 +353,7 @@ function renderWordMode() {
   }
   detail.hidden = false;
 
-  // 3) الإعراب — إعراب الكلمة المحددة فقط
+  // 2) الإعراب — إعراب الكلمة المحددة فقط
   const irabEl = $('irabText');
   const irabLine = findIrabWord(currentWord);
   irabEl.textContent = irabLine
@@ -400,18 +386,14 @@ function renderGharibList() {
     detail.hidden = false;
     return;
   }
-  // كلمات الآية — لاستخراج اسم الكلمة من موضعها (بعض البيانات ما فيها اسم الكلمة)
+  // كلمات الآية — اسم الكلمة من موضعها (البيانات: [موضع, المعنى الكامل])
   const ayahWords = ((QuranSearch.index[currentAyahIdx] || {}).t || '').split(' ');
   detail.innerHTML = gharibState.list.map(([pos, m]) => {
-    const idx2 = m.indexOf(':');
-    let word = idx2 > -1 ? m.slice(0, idx2).trim() : '';
-    let mean = idx2 > -1 ? m.slice(idx2 + 1).trim() : m;
-    // إذا ما فيه اسم للكلمة → نجيبها من موضعها في الآية
-    if (!word && ayahWords[pos - 1]) word = ayahWords[pos - 1];
+    const word = ayahWords[pos - 1] || '';
     return `
       <div class="gharib-full-item">
         <span class="gharib-word">${escapeHtml(word)}</span>
-        <span class="gharib-mean">${escapeHtml(mean)}</span>
+        <span class="gharib-mean">${escapeHtml(m)}</span>
       </div>`;
   }).join('');
   detail.hidden = false;
@@ -460,11 +442,9 @@ async function openAyah(s, a) {
     const t = tafsirMap.get(s + ':' + a);
     if (t) {
       fullTafsirText = t;
-      // لا نكتب فوق تفسير الكلمة إذا المستخدم يختار كلمة الحين
-      if (!inWordMode) {
-        $('tafsirText').textContent = t;
-        $('tafsirText').classList.remove('empty');
-      }
+      // التفسير يبقى كاملاً دائماً (وضع الكلمة لا يغيّره)
+      $('tafsirText').textContent = t;
+      $('tafsirText').classList.remove('empty');
     }
   } catch (e) { $('tafsirLoading').hidden = true; }
 
@@ -506,7 +486,7 @@ function goAyah(offset) {
   openAyah(next.s, next.a);
 }
 
-// نسخ الآية كاملة (نص + تفسير + مصدر)
+// نسخ الآية كاملة (نص + تفسير) — بدون سطر المصدر
 async function copyAyah() {
   const idx = currentAyahIdx;
   if (idx === -1) return;
@@ -516,8 +496,7 @@ async function copyAyah() {
   const txt =
     `{ ${ayah.t} }\n` +
     `سورة ${QuranSearch.surahName(ayah.s)} — الآية ${ayah.a}\n\n` +
-    (t ? `${tafsirName(currentTafsirId)}:\n${t}\n\n` : '') +
-    sourceFor(currentTafsirId);
+    (t ? `${tafsirName(currentTafsirId)}:\n${t}` : '');
   copyText(txt);
 }
 
@@ -548,7 +527,7 @@ function copyBoxText(kind) {
     title = 'الإعراب';
     body = $('irabText').textContent;
   }
-  const txt = `{ ${ayah.t} }\n${ref}\n\n${title}:\n${body}\n\n${sourceFor(currentTafsirId)}`;
+  const txt = `{ ${ayah.t} }\n${ref}\n\n${title}:\n${body}`;
   copyText(txt);
 }
 $('copyTafsirBtn').addEventListener('click', () => copyBoxText('tafsir'));
