@@ -483,6 +483,13 @@ body {
   box-shadow: none;
   font-weight: 700;
 }
+/* ط£ظ‚ظˆط§ط³ ط§ظ„ط¢ظٹط© { } â€” ط¨ظ„ظˆظ† ط§ظ„ط«ظٹظ… */
+.ayah-brace {
+  color: var(--accent);
+  font-weight: 800;
+  user-select: none;
+  opacity: 0.85;
+}
 
 /* ===== ط²ط± ط§ظ„ط±ط¬ظˆط¹ ظ„طھظپط³ظٹط± ط§ظ„ط¢ظٹط© ظƒط§ظ…ظ„ط© ===== */
 .word-action {
@@ -648,7 +655,7 @@ body {
 .tafsir-select-row label {
   font-size: 13.5px;
   font-weight: 800;
-  color: var(--gold);
+  color: var(--accent);
   white-space: nowrap;
 }
 .tafsir-select-row select {
