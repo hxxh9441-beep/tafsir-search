@@ -72,42 +72,6 @@ body {
   padding: max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
 }
 
-/* ===== ط´ط§ط´ط© ط§ظ„طھط­ظ…ظٹظ„ ===== */
-.loading-screen {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  background: linear-gradient(170deg, var(--bg1) 0%, var(--bg2) 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.loading-screen.hidden { display: none; }
-.loading-content { text-align: center; padding: 20px; }
-.loading-logo {
-  font-size: 52px;
-  margin-bottom: 14px;
-  animation: float 2.5s ease-in-out infinite;
-  display: inline-block;
-}
-.loading-content h2 { font-size: 18px; font-weight: 800; margin-bottom: 18px; }
-.progress-bar {
-  width: 220px;
-  height: 9px;
-  background: var(--hover);
-  border-radius: 20px;
-  margin: 0 auto 12px;
-  overflow: hidden;
-}
-.progress-fill {
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, var(--accent), var(--accent2));
-  border-radius: 20px;
-  transition: width .3s ease;
-}
-.loading-text { font-size: 12.5px; color: var(--text-dim); font-weight: 600; }
-
 /* ===== ط´ط§ط´ط© ط§ظ„ط¨ط¯ط§ظٹط© ===== */
 .home-inner {
   min-height: calc(100dvh - 80px);
