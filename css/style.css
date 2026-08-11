@@ -550,19 +550,6 @@ body {
   line-height: 1.8;
 }
 
-/* ط²ط± ظ†ط³ط® ظ„ظƒظ„ ظƒظ„ظ…ط© ط؛ط±ظٹط¨ */
-.gharib-copy {
-  border: none;
-  background: transparent;
-  color: var(--accent);
-  font-size: 13px;
-  cursor: pointer;
-  padding: 4px 6px;
-  border-radius: 8px;
-  flex-shrink: 0;
-  transition: background .2s;
-}
-.gharib-copy:hover { background: var(--hover); }
 .gharib-item { align-items: flex-start; flex: 1 1 auto; min-width: 0; }
 .gharib-item.active { background: var(--hover); border-radius: 10px; padding-left: 8px; padding-right: 8px; }
 .gharib-mean { font-size: 13.5px; line-height: 1.9; color: var(--text-main); overflow-wrap: break-word; word-break: break-word; min-width: 0; }
