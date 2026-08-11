@@ -457,30 +457,7 @@ body {
   font-weight: 700;
 }
 
-/* ===== طµظ†ط¯ظˆظ‚ طھظپط§ط¹ظ„ ط§ظ„ظƒظ„ظ…ط§طھ ===== */
-.word-detail {
-  margin: 4px 0 14px;
-  padding: 14px;
-  background: var(--input-bg);
-  border: 1.5px solid var(--accent);
-  border-radius: 14px;
-  box-shadow: var(--shadow);
-  text-align: right;
-}
-.word-detail-mean {
-  font-size: 14.5px;
-  line-height: 2;
-  color: var(--text-main);
-  margin-bottom: 10px;
-  overflow-wrap: break-word;
-  word-break: break-word;
-}
-.word-detail-mean b { color: var(--accent); }
-.word-detail-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
+/* ===== ط²ط± ط§ظ„ط±ط¬ظˆط¹ ظ„طھظپط³ظٹط± ط§ظ„ط¢ظٹط© ظƒط§ظ…ظ„ط© ===== */
 .word-action {
   flex: 1;
   min-width: 130px;
@@ -495,7 +472,7 @@ body {
 }
 .word-action:active { transform: scale(0.95); }
 
-/* ===== ط´ط±ظٹط· "ط¹ط±ط¶ طھظپط³ظٹط± ط§ظ„ط¢ظٹط© ظƒط§ظ…ظ„ط©" â€” ط¯ط§ط¦ظ… ط§ظ„ط¸ظ‡ظˆط± ظپظٹ طھط¨ظˆظٹط¨ ط§ظ„طھظپط³ظٹط± ===== */
+/* ط´ط±ظٹط· "ط¹ط±ط¶ طھظپط³ظٹط± ط§ظ„ط¢ظٹط© ظƒط§ظ…ظ„ط©" â€” ط¯ط§ط¦ظ… ط§ظ„ط¸ظ‡ظˆط± طھط­طھ ط§ظ„ط¢ظٹط© */
 .word-bar {
   margin: 0 0 12px;
   text-align: center;
@@ -517,24 +494,8 @@ body {
   cursor: default;
 }
 
-/* ط±ط§ط¨ط· طµط؛ظٹط± ظ„ظ„ط¨ط­ط« ط¹ظ† ط§ظ„ظƒظ„ظ…ط© (ظ„ظٹط³ ط®ظٹط§ط±ط§ظ‹ ظƒط¨ظٹط±ط§ظ‹) */
-.word-search-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  border: none;
-  background: transparent;
-  color: var(--accent);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 800;
-  cursor: pointer;
-  padding: 6px 10px;
-  border-radius: 10px;
-  transition: background .2s, transform .15s;
-}
-.word-search-link:hover { background: var(--chip-bg); }
-.word-search-link:active { transform: scale(0.97); }
+/* ط§ط³ظ… ط§ظ„ظƒظ„ظ…ط© ط§ظ„ظ…ط®طھط§ط±ط© ط¯ط§ط®ظ„ طھظپط³ظٹط±ظ‡ط§ */
+#tafsirText b { color: var(--accent); }
 
 /* ===== ظ…طµط¯ط± ط§ظ„ظ…ط¹ظ„ظˆظ…ط§طھ ===== */
 .ayah-source {
