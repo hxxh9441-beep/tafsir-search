@@ -71,8 +71,42 @@ const QuranSearch = {
       const data = await res.json();
       this.index = data.index;
       this.loaded = true;
+      // بناء فهرس الكلمات (للسرعة) — بعد استجابة الصفحة حتى لا يتأخر العرض
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(() => this.buildWordIndex(), { timeout: 3000 });
+      } else {
+        setTimeout(() => this.buildWordIndex(), 80);
+      }
       return true;
     } catch (e) { console.error('index load fail', e); return false; }
+  },
+
+  // ---------- فهرس الكلمات (لاقتراحات فورية) ----------
+  // كلمة مطبّعة → أول 3 آيات فيها. يُبنى مرة واحدة بعد تحميل الفهرس.
+  buildWordIndex() {
+    const wordMap = new Map();
+    for (const ayah of this.index) {
+      const words = new Set(normalizeArabic(ayah.st || '').split(/\s+/));
+      for (const w of words) {
+        if (w.length < 2) continue;
+        let arr = wordMap.get(w);
+        if (!arr) { arr = []; wordMap.set(w, arr); }
+        if (arr.length < 3) arr.push({ i: ayah.i, s: ayah.s, a: ayah.a, st: ayah.st });
+      }
+    }
+    this.wordMap = wordMap;
+    this.wordKeys = [...wordMap.keys()].sort();
+  },
+
+  // بحث ثنائي: أول مفتاح >= target
+  _lowerBound(keys, target) {
+    let lo = 0, hi = keys.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (keys[mid] < target) lo = mid + 1;
+      else hi = mid;
+    }
+    return lo;
   },
 
   // اسم السورة
@@ -146,24 +180,36 @@ const QuranSearch = {
     return top.map(r => ({ ...r.ayah, _score: r.score, _matchedAll: r.matchedAll }));
   },
 
-  // ---------- الاقتراحات (إكمال تلقائي) ----------
+  // ---------- الاقتراحات (إكمال تلقائي فوري) ----------
+  // يبحث في فهرس الكلمات المسبق (بحث ثنائي) — لا يفحص الآيات كلها
   suggestions(query, max = 6) {
-    if (!this.loaded) return [];
+    if (!this.wordMap) return [];
     const nq = normalizeArabic(query);
     if (nq.length < 2) return [];
 
-    const seen = new Set();
+    const keys = this.wordKeys;
+    let idx = this._lowerBound(keys, nq);
     const out = [];
-    for (const ayah of this.index) {
-      const st = ayah.st || '';
-      if (!st) continue;
-      // الآيات التي تبدأ بالكلمة أو تحتويها كاملة
-      if (st.startsWith(nq) || st.includes(nq)) {
-        const key = st.slice(0, 40);
-        if (seen.has(key)) continue;
-        seen.add(key);
-        out.push(ayah);
-        if (out.length >= max) break;
+    const seen = new Set();
+    let scanned = 0;
+    // نأخذ الكلمات اللي تبدأ بالبادئة (حد 30 كلمة — ثم نتوقف)
+    while (idx < keys.length && scanned < 30) {
+      const w = keys[idx];
+      if (!w.startsWith(nq)) break;
+      scanned++;
+      for (const a of this.wordMap.get(w)) {
+        if (seen.has(a.i)) continue;
+        seen.add(a.i);
+        out.push(a);
+        if (out.length >= max) return out;
+      }
+      idx++;
+    }
+    // لو ما لقينا نتائج (مثلاً بادئة نادرة) → بحث احتياطي في النصوص
+    if (!out.length && this.loaded) {
+      for (const ayah of this.index) {
+        const st = ayah.st || '';
+        if (st.includes(nq)) { out.push(ayah); if (out.length >= max) break; }
       }
     }
     return out;
