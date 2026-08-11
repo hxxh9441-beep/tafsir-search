@@ -87,7 +87,7 @@ function tafsirName(id) {
   return def ? def.name : 'التفسير';
 }
 function sourceFor(id) {
-  return `المصدر: ${tafsirName(id)} + غريب الكلمات + الإعراب — مركز تفسير للدراسات القرآنية (رخصة CC BY 4.0)`;
+  return 'المصدر: 4 تفاسير (الميسر، السعدي، ابن كثير، المختصر) + غريب الكلمات + الإعراب — مركز تفسير للدراسات القرآنية (رخصة CC BY 4.0)';
 }
 async function ensureTafsir(id = currentTafsirId) {
   if (tafsirMaps[id]) return tafsirMaps[id];
@@ -162,11 +162,12 @@ function highlightAyahWords(text, query) {
   const nq = normalizeArabic(query);
   const terms = nq.split(/\s+/).filter(t => t.length > 1);
   const words = text.split(' ');
-  return words.map(w => {
+  const inner = words.map(w => {
     const nw = normalizeArabic(w);
     const isHit = terms.some(t => nw === t || nw.includes(t) || t.includes(nw));
     return isHit ? `<mark>${escapeHtml(w)}</mark>` : escapeHtml(w);
   }).join(' ');
+  return `<span class="ayah-brace">{</span> ${inner} <span class="ayah-brace">}</span>`;
 }
 
 function escapeHtml(s) {
@@ -174,7 +175,7 @@ function escapeHtml(s) {
 }
 
 // ---------- نسخ للنص (مع بديل للأجهزة القديمة) ----------
-const DATA_SOURCE = 'المصدر: غريب الكلمات + الإعراب — مركز تفسير للدراسات القرآنية (رخصة CC BY 4.0)';
+const DATA_SOURCE = 'المصدر: 4 تفاسير (الميسر، السعدي، ابن كثير، المختصر) + غريب الكلمات + الإعراب — مركز تفسير للدراسات القرآنية (رخصة CC BY 4.0)';
 
 function showToast(msg) {
   const t = $('toast');
@@ -254,11 +255,14 @@ let gharibState = { list: [], s: 0, a: 0 };
 function renderAyahInteractive(ayah, query) {
   const terms = normalizeArabic(query || '').split(/\s+/).filter(t => t.length > 1);
   const words = ayah.t.split(' ');
-  $('ayahText').innerHTML = words.map(w => {
-    const nw = normalizeArabic(w);
-    const isHit = terms.some(t => nw === t || nw.includes(t) || t.includes(nw));
-    return `<span class="ayah-word${isHit ? ' hit' : ''}" data-q="${escapeHtml(nw)}">${escapeHtml(w)}</span>`;
-  }).join(' ');
+  $('ayahText').innerHTML =
+    '<span class="ayah-brace">{</span> ' +
+    words.map(w => {
+      const nw = normalizeArabic(w);
+      const isHit = terms.some(t => nw === t || nw.includes(t) || t.includes(nw));
+      return `<span class="ayah-word${isHit ? ' hit' : ''}" data-q="${escapeHtml(nw)}">${escapeHtml(w)}</span>`;
+    }).join(' ') +
+    ' <span class="ayah-brace">}</span>';
 
   // الضغط على أي كلمة → صندوق التفاعل (تفسيرها فوراً)
   document.querySelectorAll('#ayahText .ayah-word').forEach(el => {
@@ -306,10 +310,8 @@ function selectWord(el) {
   currentWord = el.dataset.q;
   selectedWordIdx = Array.prototype.indexOf.call(el.parentNode.children, el);
 
-  // كل التبويبات الثلاثة تعرض تفسير الكلمة المحددة فقط
+  // كل التبويبات الثلاثة تعرض تفسير الكلمة المحددة فقط — نبقى في القسم الحالي (لا نقفز للتفسير)
   renderWordMode();
-  // ننتقل لتبويب التفسير — التغيير يظهر في مربع النص الأساسي للتفسير (ما فيه صندوق ثاني)
-  switchTab('tafsir');
   // الزر مفعّل — نعرض تفسير كلمة الحين
   $('wordTafsirBtn').disabled = false;
   $('tafsirText').scrollIntoView({ block: 'nearest' });
