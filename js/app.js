@@ -7,7 +7,6 @@
 const $ = id => document.getElementById(id);
 const screens = {
   home: $('homeScreen'),
-  results: $('resultsScreen'),
   ayah: $('ayahScreen'),
 };
 
@@ -15,7 +14,6 @@ const screens = {
 const THEME_KEY = 'quran-search-theme';
 function applyTheme(t) {
   document.documentElement.setAttribute('data-theme', t);
-  $('themeBtn').textContent = t === 'night' ? '☀️' : '🌙';
   $('themeBtn2').textContent = t === 'night' ? '☀️' : '🌙';
   $('metaTheme').setAttribute('content', t === 'night' ? '#0B1220' : '#F4F6FA');
   try { localStorage.setItem(THEME_KEY, t); } catch(e){}
@@ -23,7 +21,6 @@ function applyTheme(t) {
 let theme = 'day';
 try { theme = localStorage.getItem(THEME_KEY) || (matchMedia('(prefers-color-scheme: dark)').matches ? 'night' : 'day'); } catch(e){}
 applyTheme(theme);
-$('themeBtn').addEventListener('click', () => applyTheme(document.documentElement.getAttribute('data-theme') === 'night' ? 'day' : 'night'));
 $('themeBtn2').addEventListener('click', () => applyTheme(document.documentElement.getAttribute('data-theme') === 'night' ? 'day' : 'night'));
 
 // ---------- التنقل بين الشاشات ----------
@@ -54,6 +51,8 @@ async function loadJSON(url) {
 
 // بيانات التفسير/الغريب/الإعراب — خريطة (s,a)→نص
 let tafsirMaps = {};     // id → Map(s:a → نص)
+let gharibMap = null;    // Map(s:a → قائمة كلمات غريبة)
+let irabMaps = {};       // chunk → Map(s:a → نص الإعراب) — ملف لكل مجموعة سور
 let currentTafsirId = 'muyassar';   // التفسير المحدد حالياً
 const TAFSIR_LIST = [
   { id: 'muyassar',  name: 'التفسير الميسر',    file: 'data/tafsir.json',             label: 'التفسير الميسر' },
@@ -86,31 +85,54 @@ async function ensureGharib() {
 }
 
 async function ensureIrab(s) {
-  if (irabMap) return;
-  // ملف الإعراب — نختار الملف حسب رقم السورة
+  // ملف الإعراب — نختار الملف حسب رقم السورة (كل ملف يغطي 8 سور)
   const chunk = Math.ceil(s / 8);
+  if (irabMaps[chunk]) return irabMaps[chunk];
   const fname = 'data/irab/irab-' + String(chunk).padStart(2, '0') + '.json';
   const data = await loadJSON(fname);
-  irabMap = new Map();
-  for (const item of data) irabMap.set(item.s + ':' + item.a, item.i);
+  const map = new Map();
+  for (const item of data) map.set(item.s + ':' + item.a, item.i);
+  irabMaps[chunk] = map;
+  return map;
 }
 
 // ---------- البحث ----------
 let debounceTimer = null;
-function doSearch(query, showScreenAfter = true) {
+// البحث الكامل (زر البحث / Enter) — يعرض النتائج في القائمة المنسدلة بدل صفحة منفصلة
+function doSearch(query) {
   lastQuery = query;
   const results = QuranSearch.search(query);
-  renderResults(results, query);
-  if (showScreenAfter) {
-    showScreen('results');
-    const meta = $('resultsMeta');
-    meta.hidden = false;
-    if (results.length) {
-      meta.textContent = `📄 عدد النتائج: ${results.length} — لـ "${query}"`;
-    } else {
-      meta.textContent = `🔍 لا توجد نتائج لـ "${query}"`;
-    }
+  showFullResults(results, query);
+}
+
+// عرض النتائج الكاملة داخل القائمة المنسدلة (بديل صفحة النتائج)
+function showFullResults(results, query) {
+  const box = $('suggestBox');
+  if (!results.length) {
+    box.innerHTML = `
+      <div class="search-empty">
+        <div style="font-size:32px; margin-bottom:8px;">🔍</div>
+        <div style="font-weight:700; margin-bottom:4px;">لا توجد نتائج لـ "${escapeHtml(query)}"</div>
+        <div style="font-size:13px; color:var(--text-dim);">جرّب كلمة أخرى أو تأكد من الإملاء</div>
+      </div>`;
+  } else {
+    box.innerHTML =
+      `<div class="results-meta-inline">📄 ${results.length} نتيجة لـ "${escapeHtml(query)}"</div>` +
+      results.map(r => {
+        const name = QuranSearch.surahName(r.s);
+        const preview = r._note ? r._note : (r.st ? r.st.slice(0, 70) + '…' : '');
+        return `
+          <div class="result-card" data-s="${r.s}" data-a="${r.a}">
+            <div class="result-text">${highlightAyahWords(r.t, query)}</div>
+            <div class="result-ref">
+              <span class="snum">${r.s}</span>
+              <span>${name} — الآية ${r.a}</span>
+            </div>
+            ${preview ? `<div class="result-preview">${escapeHtml(preview)}</div>` : ''}
+          </div>`;
+      }).join('');
   }
+  box.hidden = false;
 }
 
 // ---------- عرض الآية كاملة في النتائج مع إبراز كلمة البحث ----------
@@ -123,32 +145,6 @@ function highlightAyahWords(text, query) {
     const isHit = terms.some(t => nw === t || nw.includes(t) || t.includes(nw));
     return isHit ? `<mark>${escapeHtml(w)}</mark>` : escapeHtml(w);
   }).join(' ');
-}
-
-function renderResults(results, query) {
-  const list = $('resultsList');
-  if (!results.length) {
-    list.innerHTML = `
-      <div style="text-align:center; padding:40px 0; color:var(--text-dim);">
-        <div style="font-size:40px; margin-bottom:12px;">🔍</div>
-        <div style="font-weight:700; font-size:16px; margin-bottom:6px;">لا توجد نتائج</div>
-        <div style="font-size:13px;">جرّب كلمة أخرى أو تأكد من الإملاء</div>
-      </div>`;
-    return;
-  }
-  list.innerHTML = results.map(r => {
-    const name = QuranSearch.surahName(r.s);
-    const preview = r._note ? r._note : (r.st ? r.st.slice(0, 80) + '…' : '');
-    return `
-      <div class="result-card" data-s="${r.s}" data-a="${r.a}">
-        <div class="result-text">${highlightAyahWords(r.t, query)}</div>
-        <div class="result-ref">
-          <span class="snum">${r.s}</span>
-          <span>${name} — الآية ${r.a}</span>
-        </div>
-        <div class="result-preview">${escapeHtml(preview)}</div>
-      </div>`;
-  }).join('');
 }
 
 function escapeHtml(s) {
@@ -193,13 +189,29 @@ function showSuggestions(query, boxId) {
   if (!query || query.trim().length < 2) { box.hidden = true; return; }
   const sugg = QuranSearch.suggestions(query, 6);
   if (!sugg.length) { box.hidden = true; return; }
+  const nq = normalizeArabic(query);
   box.innerHTML = sugg.map(s => {
     const name = QuranSearch.surahName(s.s);
     const text = s.st || s.t;
+    // عرض مقطع حول الكلمة المطابقة — أوضح من بداية الآية
+    const norm = normalizeArabic(text);
+    const pos = norm.indexOf(nq);
+    let shown = text;
+    if (pos > 18) {
+      // نقطع من قبل الكلمة المطابقة (مع رمز بداية)
+      const cutAt = norm.slice(0, pos).split(' ').slice(0, -1).join(' ').length;
+      shown = '…' + text.slice(cutAt, cutAt + 70);
+    } else {
+      shown = text.slice(0, 70);
+    }
+    const highlighted = escapeHtml(shown).replace(
+      new RegExp('(' + nq.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'g'),
+      '<mark>$1</mark>'
+    );
     return `
       <div class="suggest-item" data-s="${s.s}" data-a="${s.a}">
         <span class="s-icon">📖</span>
-        <span class="s-text">${escapeHtml(text.slice(0, 50))}</span>
+        <span class="s-text">${highlighted}</span>
         <span class="s-ref">${name}:${s.a}</span>
       </div>`;
   }).join('');
@@ -311,8 +323,10 @@ function renderWordMode() {
     tafsirEl.innerHTML = g.word
       ? `<b>${escapeHtml(g.word)}</b> — ${escapeHtml(g.mean)}`
       : `<b>${escapeHtml(currentWord)}</b> — ${escapeHtml(g.mean)}`;
+    tafsirEl.classList.remove('empty');
   } else {
-    tafsirEl.innerHTML = `«${escapeHtml(currentWord)}» مو من الكلمات الغريبة في هذي الآية`;
+    tafsirEl.innerHTML = `«${escapeHtml(currentWord)}» ليست من الكلمات الغريبة في هذي الآية`;
+    tafsirEl.classList.add('empty');
   }
 
   // 2) غريب الكلمات — الكلمة المحددة فقط
@@ -335,7 +349,7 @@ function renderWordMode() {
       copyText(txt);
     });
   } else {
-    detail.innerHTML = `<div style="padding:18px; text-align:center; color:var(--text-dim); font-size:13.5px;">«${escapeHtml(currentWord)}» مو من الكلمات الغريبة في هذي الآية</div>`;
+    detail.innerHTML = `<div class="empty-hint">«${escapeHtml(currentWord)}» ليست من الكلمات الغريبة في هذي الآية</div>`;
   }
   detail.hidden = false;
 
@@ -345,6 +359,7 @@ function renderWordMode() {
   irabEl.textContent = irabLine
     ? irabLine
     : `لا يوجد إعراب لـ«${currentWord}» في هذي الآية`;
+  irabEl.classList.toggle('empty', !irabLine);
 
   inWordMode = true;
 }
@@ -352,8 +367,10 @@ function renderWordMode() {
 // الرجوع للوضع الكامل: التبويبات الثلاثة تعرض تفسير/غريب/إعراب الآية كاملة
 function restoreFullMode() {
   $('tafsirText').textContent = fullTafsirText;
+  $('tafsirText').classList.toggle('empty', !fullTafsirText);
   renderGharibList();           // القائمة الكاملة للغريب
   $('irabText').textContent = fullIrabText;
+  $('irabText').classList.toggle('empty', !fullIrabText);
   inWordMode = false;
   $('wordTafsirBtn').disabled = true;
   document.querySelectorAll('#ayahText .ayah-word').forEach(w => w.classList.remove('selected'));
@@ -365,7 +382,7 @@ function restoreFullMode() {
 function renderGharibList() {
   const detail = $('gharibDetail');
   if (!gharibState.list.length) {
-    detail.innerHTML = '<div style="padding:18px; text-align:center; color:var(--text-dim); font-size:13.5px;">📜 لا توجد كلمات غريبة في هذي الآية</div>';
+    detail.innerHTML = '<div class="empty-hint">📜 لا توجد كلمات غريبة في هذي الآية</div>';
     detail.hidden = false;
     return;
   }
@@ -400,7 +417,9 @@ function renderGharibList() {
   });
 }
 
+let ayahSeq = 0;   // رقم تسلسلي — يمنع تسابق التنقل السريع بين الآيات
 async function openAyah(s, a) {
+  const seq = ++ayahSeq;
   showScreen('ayah');
   const idx = QuranSearch.index.findIndex(x => x.s === s && x.a === a);
   if (idx === -1) return;
@@ -421,9 +440,11 @@ async function openAyah(s, a) {
   inWordMode = false;
   selectedWordIdx = -1;
   $('tafsirText').textContent = '';
+  $('tafsirText').classList.remove('empty');
   $('wordTafsirBtn').disabled = true;  // التبويب الافتراضي = تفسير الآية كاملة
   $('gharibDetail').hidden = true;
   $('irabText').textContent = '';
+  $('irabText').classList.remove('empty');
   $('tafsirLoading').hidden = false;
   $('gharibLoading').hidden = false;
   switchTab('tafsir');
@@ -434,18 +455,23 @@ async function openAyah(s, a) {
   // التفسير المحدد (الميسر افتراضياً)
   try {
     const tafsirMap = await ensureTafsir();
+    if (seq !== ayahSeq) return;   // آية أحدث فتحت — نتجاهل
     $('tafsirLoading').hidden = true;
     const t = tafsirMap.get(s + ':' + a);
     if (t) {
       fullTafsirText = t;
       // لا نكتب فوق تفسير الكلمة إذا المستخدم يختار كلمة الحين
-      if (!inWordMode) $('tafsirText').textContent = t;
+      if (!inWordMode) {
+        $('tafsirText').textContent = t;
+        $('tafsirText').classList.remove('empty');
+      }
     }
   } catch (e) { $('tafsirLoading').hidden = true; }
 
   // غريب الكلمات — قائمة مباشرة بكل الكلمات الغريبة
   try {
     await ensureGharib();
+    if (seq !== ayahSeq) return;   // آية أحدث فتحت — نتجاهل
     $('gharibLoading').hidden = true;
     const g = gharibMap.get(s + ':' + a);
     gharibState = { list: g && g.length ? g : [], s, a };
@@ -456,12 +482,16 @@ async function openAyah(s, a) {
 
   // الإعراب — عند الطلب (الأثقل)
   try {
-    await ensureIrab(s);
+    const irabMap = await ensureIrab(s);
+    if (seq !== ayahSeq) return;   // آية أحدث فتحت — نتجاهل
     const i = irabMap.get(s + ':' + a);
     fullIrabText = i || '';
     // إذا المستخدم في وضع كلمة → نحدّث إعراب الكلمة المحددة
     if (inWordMode && selectedWordIdx > -1) renderWordMode();
-    else $('irabText').textContent = fullIrabText;
+    else {
+      $('irabText').textContent = fullIrabText || 'لا يوجد إعراب لهذه الآية';
+      $('irabText').classList.toggle('empty', !fullIrabText);
+    }
   } catch (e) {}
 }
 
@@ -547,7 +577,10 @@ $('tafsirSelect').addEventListener('change', async (e) => {
     const t = map.get(ayah.s + ':' + ayah.a) || '';
     fullTafsirText = t;
     // لا نكتب فوق تفسير الكلمة إذا المستخدم يختار كلمة الحين
-    if (!inWordMode) $('tafsirText').textContent = t;
+    if (!inWordMode) {
+      $('tafsirText').textContent = t;
+      $('tafsirText').classList.toggle('empty', !t);
+    }
   } catch (err) { $('tafsirLoading').hidden = true; }
 });
 
@@ -629,42 +662,26 @@ function bindSearch(inputId, btnId, clearId, suggestId) {
   });
 }
 
-// أحداث مشتركة
-function bindSuggestionClicks(suggestId) {
-  document.addEventListener('click', (e) => {
-    const item = e.target.closest('.suggest-item');
-    if (!item) return;
-    const s = +item.dataset.s, a = +item.dataset.a;
-    $(suggestId).hidden = true;
-    openAyah(s, a);
-  });
-}
-
-// نتيجة ← بطاقة آية
+// نتيجة/اقتراح ← بطاقة آية (يخفي القائمة أولاً)
 document.addEventListener('click', (e) => {
   const card = e.target.closest('.result-card');
-  if (card) openAyah(+card.dataset.s, +card.dataset.a);
-});
-
-// اقتراحات سريعة (chips)
-document.querySelectorAll('.chip').forEach(chip => {
-  chip.addEventListener('click', () => {
-    const q = chip.dataset.q;
-    $('searchInput').value = q;
-    $('searchInput2').value = q;
-    doSearch(q);
-  });
+  if (card) {
+    $('suggestBox').hidden = true;
+    openAyah(+card.dataset.s, +card.dataset.a);
+    return;
+  }
+  const item = e.target.closest('.suggest-item');
+  if (item) {
+    $('suggestBox').hidden = true;
+    openAyah(+item.dataset.s, +item.dataset.a);
+  }
 });
 
 // أزرار الرجوع
-$('backBtn').addEventListener('click', () => showScreen('home'));   // من النتائج → الرئيسية
-$('backBtn2').addEventListener('click', () => showScreen('results')); // من الآية → النتائج
+$('backBtn2').addEventListener('click', () => showScreen('home')); // من الآية → الرئيسية
 
-// ربط حقلي البحث
+// ربط حقل البحث الرئيسي
 bindSearch('searchInput', 'searchBtn', 'clearBtn', 'suggestBox');
-bindSearch('searchInput2', 'searchBtn2', 'clearBtn2', 'suggestBox2');
-bindSuggestionClicks('suggestBox');
-bindSuggestionClicks('suggestBox2');
 
 // ---------- شريط التحميل ----------
 function setProgress(pct, text) {
@@ -680,9 +697,10 @@ async function init() {
   // كشف الفتح المباشر (file://) — البيانات لن تعمل
   if (location.protocol === 'file:') {
     hideLoading();
-    const list = $('resultsList');
-    list.innerHTML = `
-      <div style="text-align:center; padding:40px 16px; color:var(--text-dim);">
+    const msg = $('homeMessage');
+    msg.hidden = false;
+    msg.innerHTML = `
+      <div style="text-align:center; padding:24px 16px; color:var(--text-dim);">
         <div style="font-size:44px; margin-bottom:14px;">⚠️</div>
         <div style="font-weight:800; font-size:17px; margin-bottom:8px; color:var(--text-main);">البيانات ما تشتغل من الفتح المباشر</div>
         <div style="font-size:13.5px; line-height:2;">المتصفح يمنع قراءة ملفات JSON من ملف مفتوح مباشرة (قاعدة أمان).<br><br>
@@ -694,10 +712,6 @@ async function init() {
     return;
   }
 
-  // سكلتون تحميل
-  const list = $('resultsList');
-  list.innerHTML = '<div class="skeleton"></div><div class="skeleton"></div>';
-
   // المرحلة 1: الفهرس فقط (خفيف) — البحث يشتغل فوراً
   setProgress(10, 'تهيئة التطبيق...');
   const [okS, okI] = await Promise.all([
@@ -707,7 +721,9 @@ async function init() {
 
   if (!okI) {
     hideLoading();
-    list.innerHTML = '<div style="text-align:center; padding:40px; color:var(--text-dim);">⚠️ تعذّر تحميل البيانات — تأكد من الاتصال أول مرة</div>';
+    const msg = $('homeMessage');
+    msg.hidden = false;
+    msg.innerHTML = '<div style="text-align:center; padding:24px; color:var(--text-dim);">⚠️ تعذّر تحميل البيانات — تأكد من الاتصال أول مرة</div>';
     return;
   }
 
@@ -715,7 +731,6 @@ async function init() {
   setProgress(100, 'الانتهاء...');
   setTimeout(() => {
     hideLoading();
-    list.innerHTML = '';
   }, 200);
 
   ensureTafsir().catch(() => {});
