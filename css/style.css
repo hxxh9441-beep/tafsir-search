@@ -186,29 +186,6 @@ body {
   display: grid; place-items: center;
 }
 
-/* ===== ط§ظ„ط§ظ‚طھط±ط§ط­ط§طھ ط§ظ„ط³ط±ظٹط¹ط© ===== */
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 14px;
-}
-.chip {
-  border: none;
-  background: var(--chip-bg);
-  color: var(--text-main);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 700;
-  padding: 9px 16px;
-  border-radius: 30px;
-  cursor: pointer;
-  transition: transform .15s, background .2s;
-}
-.chip:active { transform: scale(0.93); }
-.chip:hover { background: var(--hover); }
-
 /* ===== ط§ظ„ط§ظ‚طھط±ط§ط­ط§طھ ط£ط«ظ†ط§ط، ط§ظ„ظƒطھط§ط¨ط© ===== */
 .suggest {
   width: min(100%, 560px);
@@ -218,7 +195,8 @@ body {
   box-shadow: var(--shadow);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  overflow: hidden;
+  overflow-y: auto;
+  max-height: 62vh;
   text-align: right;
 }
 .suggest-item {
@@ -236,6 +214,45 @@ body {
 .suggest-item .s-icon { font-size: 13px; opacity: .7; }
 .suggest-item .s-text { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .suggest-item .s-ref { font-size: 11px; color: var(--text-dim); flex-shrink: 0; }
+
+/* ظ†طھط§ط¦ط¬ ط§ظ„ط¨ط­ط« ط§ظ„ظƒط§ظ…ظ„ط© ط¯ط§ط®ظ„ ط§ظ„ظ‚ط§ط¦ظ…ط© (ط¨ط¯ظٹظ„ طµظپط­ط© ط§ظ„ظ†طھط§ط¦ط¬) */
+.results-meta-inline {
+  padding: 10px 16px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--card-border);
+  position: sticky;
+  top: 0;
+  background: var(--card);
+  z-index: 2;
+}
+.search-empty {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--text-main);
+}
+.suggest .result-card {
+  border: none;
+  border-bottom: 1px solid var(--card-border);
+  border-radius: 0;
+  box-shadow: none;
+  margin: 0;
+  padding: 12px 16px;
+}
+.suggest .result-card:last-child { border-bottom: none; }
+.suggest .result-text { font-size: 14.5px; }
+.suggest .result-preview { font-size: 12px; }
+
+/* ط±ط³ط§ط¦ظ„ ط§ظ„ط±ط¦ظٹط³ظٹط© (ط£ط®ط·ط§ط، ط§ظ„طھط­ظ…ظٹظ„...) */
+.home-message {
+  width: min(100%, 560px);
+  margin-top: 14px;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+}
 
 /* ===== ط´ط§ط´ط© ط§ظ„ظ†طھط§ط¦ط¬ ===== */
 .results-header {
@@ -575,6 +592,21 @@ body {
   border: 1px solid var(--card-border);
   border-radius: 12px;
   padding: 12px 42px 12px 14px;
+}
+
+/* ط±ط³ط§ط¦ظ„ "ظ„ط§ ظٹظˆط¬ط¯..." ط§ظ„ظ…ظˆط­ظ‘ط¯ط© â€” ظ†ظپط³ ط§ظ„ط­ط¬ظ… ظˆط§ظ„ظ„ظˆظ† ظپظٹ ظƒظ„ ط§ظ„ط£ظ‚ط³ط§ظ… */
+.empty-hint {
+  padding: 18px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1.9;
+}
+.section-text.empty {
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 14px;
+  padding: 18px 14px;
 }
 
 /* ط؛ظ„ط§ظپ ط§ظ„طµظ†ط¯ظˆظ‚ + ط²ط± ط§ظ„ظ†ط³ط® ط§ظ„ظ…ظˆط­ط¯ (ظٹط¸ظ‡ط± ظپظٹ ظƒظ„ ط§ظ„ط£ظ‚ط³ط§ظ… ط§ظ„ط«ظ„ط§ط«ط©) */
